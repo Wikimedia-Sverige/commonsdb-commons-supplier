@@ -1,0 +1,29 @@
+# Temporary files
+*~
+
+# Log files
+*.log
+
+# Python
+## Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+## Sphinx documentation
+docs/_build/
+
+## Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.tox/
+
+## pywikibot stuff
+apicache-py3/
+pywikibot.lwp
+throttle.ctrl
