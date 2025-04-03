@@ -1,2 +1,1 @@
-# .github
-Defaults for repos by this org
+# commonsdb-commons-supplier
