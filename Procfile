@@ -1,1 +1,1 @@
-test: echo TEST
+test: python main.py
