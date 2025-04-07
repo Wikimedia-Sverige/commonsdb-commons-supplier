@@ -1,0 +1,19 @@
+name: Python package
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          # This is the Python version that comes with the latest Ubuntu LTS.
+          # It's likely the version used when developing.
+          python-version: "3.12"
+      - name: Install tox and any other packages
+        run: pip install tox
+      - name: Run tox
+        run: tox
