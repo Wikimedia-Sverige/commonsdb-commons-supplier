@@ -1,1 +1,2 @@
 iscc-sdk==0.8.0
+pywikibot==10.0.0
