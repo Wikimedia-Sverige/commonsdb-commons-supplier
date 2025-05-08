@@ -100,7 +100,7 @@ class MetadataCollectorTestCase(TestCase):
 
         assert name == "Image on Commons"
 
-    def test_get_name_from_caption(self):
+    def test_get_name_from_label(self):
         self.FilePage.return_value.pageid = "123"
         self._mock_response("M123", statements={"P6243": {"id": "Q456"}})
         self._mock_response("Q456", labels={"en": "Label"})

@@ -19,8 +19,8 @@ class MetadataCollector:
         return url
 
     def get_name(self) -> str:
-        return (self._get_name_from_label()
-                or self._get_name_from_title()
+        return (self._get_name_from_title()
+                or self._get_name_from_label()
                 or self._get_name_from_filename())
 
     def _get_name_from_label(self) -> str:
@@ -103,6 +103,7 @@ class MetadataCollector:
         if depicted is None:
             return None
 
+        # P275 = "copyright license"
         license_property = self._get_property(depicted, "P275")
         if license_property is None:
             return None
