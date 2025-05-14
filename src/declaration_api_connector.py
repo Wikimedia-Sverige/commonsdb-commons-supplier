@@ -121,10 +121,10 @@ class DeclarationApiConnector:
             "User-Agent": "commonsdb-commons-supplier/0.0.1",
             "Authorization": f"Bearer {self._api_key}",
         }
-        logging.info(f"Sending request to '{ENDPOINT}'.")
-        logging.debug(json.dumps(data))
+        logger.info(f"Sending request to '{ENDPOINT}'.")
+        logger.debug(f"POST: {json.dumps(data)}")
         response = requests.post(ENDPOINT, json=data, headers=headers)
-        logging.debug(response.text)
+        logger.debug(f"Received response: {response.text}")
 
     def _get_cid(self, public_metadata: str) -> str:
         json_string = json.dumps(
