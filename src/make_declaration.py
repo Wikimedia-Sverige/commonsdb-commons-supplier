@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
-from pywikibot import Site, FilePage
+
+from pywikibot import FilePage, Site
 
 from declaration_api_connector import DeclarationApiConnector
 from iscc_generator import IsccGenerator
@@ -39,7 +40,7 @@ if __name__ == "__main__":
         "Stockholm September 2013 - panoramio (11).jpg",
         "File:Stockholm 8887 (9861761014).jpg",
         "File:Johannes Vermeer - Het melkmeisje - Google Art Project.jpg",
-        "File:Johannes Vermeer - Het melkmeisje - Google Art Project (fragment).jpg",
+        "File:Johannes Vermeer - Het melkmeisje - Google Art Project (fragment).jpg", # noqa E501
         "File:Netherlands-4205 - Milkmaid (11715339273).jpg",
         "File:Johannes Vermeer - Het melkmeisje - Google Art Project.png",
         "File:Domkyrkan Karlstad.JPG",
