@@ -1,5 +1,6 @@
 import logging
-from pathlib import Path
+from tempfile import TemporaryDirectory
+from time import time
 
 from pywikibot import FilePage, Site
 
@@ -11,23 +12,31 @@ logger = logging.getLogger(__name__)
 
 
 def process_file(commons_filename):
+    logger.info(f"Processing '{commons_filename}'.")
     site = Site()
     page = FilePage(site, commons_filename)
     filename = page.title(with_ns=False)
-    path = f"../files/{filename}"
-    if not Path(path).exists():
-        logger.info(f"Downloading file: '{filename}'")
-        page.download(path)
+    storage = TemporaryDirectory()
+    path = f"{storage.name}/{filename}"
+    logger.info(f"Downloading file: '{filename}'")
+    page.download(path)
+    print(f"File size: {page.latest_file_info.size / 1024 / 1024:.0f} MB")
 
     metadata_collector = MetadataCollector(filename)
     iscc_generator = IsccGenerator(path)
     api_connector = DeclarationApiConnector()
 
+    logger.info("Getting name.")
     name = metadata_collector.get_name()
+    logger.info("Getting location.")
     location = metadata_collector.get_url()
+    logger.info("Getting license.")
     license_url = metadata_collector.get_license()
+    logger.info("Generating ISCC.")
     iscc = iscc_generator.generate()
+    logger.info("Making declaration.")
     api_connector.request_declaration(name, iscc, location, license_url)
+    logger.info(f"Done with '{commons_filename}'.")
 
 
 if __name__ == "__main__":
@@ -36,21 +45,19 @@ if __name__ == "__main__":
         format="{asctime};{name};{levelname};{message}",
         style="{"
     )
-    files = [
-        "Stockholm September 2013 - panoramio (11).jpg",
-        "File:Stockholm 8887 (9861761014).jpg",
-        "File:Johannes Vermeer - Het melkmeisje - Google Art Project.jpg",
-        "File:Johannes Vermeer - Het melkmeisje - Google Art Project (fragment).jpg", # noqa E501
-        "File:Netherlands-4205 - Milkmaid (11715339273).jpg",
-        "File:Johannes Vermeer - Het melkmeisje - Google Art Project.png",
-        "File:Domkyrkan Karlstad.JPG",
-        "File:Hallsbergs tågstation.JPG",
-        "File:Oregrunds kyrka.jpg",
-        "File:Litslena kyrka vinter 02.jpg"
-    ]
-    for f in files:
-        print(f)
+    with open("files.txt") as f:
+        files = [g.strip() for g in f]
+
+    start_total_time = time()
+    print(f"Processing {len(files)} files.")
+    for i, f in enumerate(files):
+        print(f"{i + 1}/{len(files)}: {f}")
+        start_time = time()
         try:
             process_file(f)
         except Exception:
-            logger.warning(f"Error while processing file: '{f}'.")
+            logger.exception(f"Error while processing file: '{f}'.")
+            print("ERROR")
+        finally:
+            print(f"File time: {time() - start_time:.0f}")
+    print(f"Total time: {time() - start_total_time:.0f}")

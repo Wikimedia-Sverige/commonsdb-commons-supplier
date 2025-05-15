@@ -4,6 +4,8 @@
 
 Python 3.12. May work with other versions, but not guaranteed.
 
+`openssl` is required to generat TSA files.
+
 ## Development
 
 It's recommended to do development with [Venv](https://docs.python.org/3/library/venv.html). To set up the environment run:

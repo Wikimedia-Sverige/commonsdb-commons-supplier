@@ -1,7 +1,10 @@
+import base64
 import hashlib
 import json
 import logging
 import os
+import subprocess
+from datetime import datetime
 
 import jwt
 import multihash
@@ -50,6 +53,10 @@ class DeclarationApiConnector:
         location: str,
         rights_statement: str
     ):
+        timestamp = (datetime.now()
+                     .astimezone()
+                     .replace(microsecond=0)
+                     .isoformat())
         public_metadata = {
             "$schema": "$schema",
             "iscc": iscc,
@@ -64,14 +71,11 @@ class DeclarationApiConnector:
             "entryUUID": "entryUUID",
             "createdAt": "createdAt",
             "updatedAt": "updatedAt",
-            "timestamp": 0,
+            "timestamp": timestamp,
             "declarerId": "declarerId",
             "regId": "000001",
             "declarationIdVersion": "01",
-            "certificates": {
-                "x5c_header": "x5c_header"
-            },
-            "credentials": [self._did_web, self._member_credentials],
+            "credentials": [self._member_credentials],
             "supplierData": {
                 "creationDate": "<supplier creationDate>",
                 "creator": "<supplier creator>",
@@ -82,11 +86,22 @@ class DeclarationApiConnector:
                 "steward": "<supplier steward>"
             }
         }
+        cid = self._get_cid(public_metadata)
+        declaration_id = self._get_declaration_id(public_metadata, cid)
+        proof = self._member_credentials.get("proof").get("jwt")
+        commons_db_metadata = {
+            "location": location,
+            "rightsStatement": rights_statement,
+            "rationale": "<supplier rationale>",
+            "cid": cid,
+            "declarationId": declaration_id,
+            "iscc": iscc,
+            "credentials": [{"proof": proof}],
+            "timestamp": timestamp
+        }
         did_key = (self._member_credentials
                    .get("credentialSubject", {})
                    .get("id"))
-        cid = self._get_cid(public_metadata)
-        declaration_id = self._get_declaration_id(public_metadata)
         data = {
             "metaInternal": {
                 "companyId": did_key,
@@ -96,26 +111,15 @@ class DeclarationApiConnector:
                 "cid": cid
             },
             "signature": self._get_signature(public_metadata),
-            "tsaSignature": "tsaSignature",
+            "tsaSignature": self._get_tsa(public_metadata, "tsa"),
             "declarationMetadata": {
                 "publicMetadata": public_metadata,
-                "commonsDbRegistry": {
-                    "location": location,
-                    "rightsStatement": rights_statement,
-                    "rationale": "<supplier rationale>",
-                    "cid": cid,
-                    "declarationId": declaration_id,
-                    "iscc": iscc,
-                    "credentials": [{"proof": "signature only of credential"}],
-                    "timestamp": "<supplier timestamp>"
-                }
+                "commonsDbRegistry": commons_db_metadata
             },
-            "commonsDbRegistrySignature": [
-                "signature of commonsDbRegistry declaration metadata"
-            ],
-            "commonsDbRegistryTsaSignature": [
-                "signature of commonsDbRegistry declaration metadata with timestamp service" # noqa E501
-            ]
+            "commonsDbRegistrySignature":
+                self._get_signature(commons_db_metadata),
+            "commonsDbRegistryTsaSignature":
+                [self._get_tsa(commons_db_metadata, "commons-db-tsa")]
         }
         headers = {
             "User-Agent": "commonsdb-commons-supplier/0.0.1",
@@ -132,17 +136,14 @@ class DeclarationApiConnector:
             separators=(',', ':'),
             sort_keys=True
         )
-        hash = hashlib.sha256()
-        hash.update(json_string.encode())
+        hash = hashlib.sha256((json_string.encode()))
         prefix = bytes([0x12, 0x20])
         mh = multihash.encode(hash.digest(), "sha2-256")
         cid = b"".join([prefix, mh])
         return b58encode(cid).decode()
 
-    def _get_declaration_id(self, public_metadata: str) -> str:
-        cid_hash = hashlib.sha256(
-            self._get_cid(public_metadata).encode()
-        ).digest()
+    def _get_declaration_id(self, public_metadata: str, cid: str) -> str:
+        cid_hash = hashlib.sha256(cid.encode()).digest()
 
         ids = b"".join([
             bytes.fromhex(public_metadata.get("declarationIdVersion")),
@@ -152,10 +153,46 @@ class DeclarationApiConnector:
         declaration_id = b58encode(ids)[:20].lower()
         return declaration_id.decode()
 
-    def _get_signature(self, public_metadata: str) -> str:
+    def _get_signature(self, data: str) -> str:
         signature = jwt.encode(
-            public_metadata,
+            data,
             self._private_key,
             algorithm="ES256"
         )
         return signature
+
+    def _get_tsa(self, data: dict, name: str) -> dict:
+        # TODO: Do this without having to juggle files.
+        with open(f"{name}.json", "w") as data_file:
+            json.dump(data, data_file)
+
+        # TODO: Is there a library that does this instead?
+        openssl_command = [
+            "openssl",
+            "ts",
+            "-query",
+            "-data",
+            f"{name}.json",
+            "-no_nonce",
+            "-sha512",
+            "-cert",
+            "-out",
+            f"{name}.tsq"
+        ]
+        subprocess.run(openssl_command)
+
+        headers = {"Content-Type": "application/timestamp-query"}
+        with open(f"{name}.tsq", "rb") as tsq_file:
+            tsq_data = tsq_file.read()
+            r = requests.post(
+                "https://freetsa.org/tsr",
+                data=tsq_data,
+                headers=headers
+            )
+            tsq = base64.b64encode(tsq_data).decode()
+
+        tsr = base64.b64encode(r.content).decode()
+        with open(f"{name}.tsr", "wb") as tsr_file:
+            tsr_file.write(r.content)
+
+        return {"tsq": tsq, "tsr": tsr}
