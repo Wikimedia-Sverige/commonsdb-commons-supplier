@@ -1,4 +1,5 @@
 import logging
+from argparse import ArgumentParser
 from tempfile import TemporaryDirectory
 from time import time
 
@@ -11,7 +12,7 @@ from metadata_collector import MetadataCollector
 logger = logging.getLogger(__name__)
 
 
-def process_file(commons_filename):
+def process_file(commons_filename, args):
     logger.info(f"Processing '{commons_filename}'.")
     site = Site()
     page = FilePage(site, commons_filename)
@@ -24,7 +25,7 @@ def process_file(commons_filename):
 
     metadata_collector = MetadataCollector(filename)
     iscc_generator = IsccGenerator(path)
-    api_connector = DeclarationApiConnector()
+    api_connector = DeclarationApiConnector(args.dry)
 
     logger.info("Getting name.")
     name = metadata_collector.get_name()
@@ -45,6 +46,10 @@ if __name__ == "__main__":
         format="{asctime};{name};{levelname};{message}",
         style="{"
     )
+    parser = ArgumentParser()
+    parser.add_argument("--dry", "-d", action="store_true")
+    args = parser.parse_args()
+
     with open("files.txt") as f:
         files = [g.strip() for g in f]
 
@@ -54,7 +59,7 @@ if __name__ == "__main__":
         print(f"{i + 1}/{len(files)}: {f}")
         start_time = time()
         try:
-            process_file(f)
+            process_file(f, args)
         except Exception:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")

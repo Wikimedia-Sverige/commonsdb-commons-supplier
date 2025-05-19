@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 from datetime import datetime
+from types import SimpleNamespace
 
 import jwt
 import multihash
@@ -23,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 class DeclarationApiConnector:
-    def __init__(self):
+    def __init__(self, dry: bool = False):
+        self._dry = dry
         self._member_credentials = self._read_json(MEMBER_CREDENTIALS_PATH)
         self._did_web = self._read_json(DID_WEB_CREDENTIALS_PATH)
         self._private_key = self._read_text(PRIVATE_KEY_PATH)
@@ -127,7 +129,10 @@ class DeclarationApiConnector:
         }
         logger.info(f"Sending request to '{ENDPOINT}'.")
         logger.debug(f"POST: {json.dumps(data)}")
-        response = requests.post(ENDPOINT, json=data, headers=headers)
+        if self._dry:
+            response = SimpleNamespace(text="DRY RESPONSE")
+        else:
+            response = requests.post(ENDPOINT, json=data, headers=headers)
         logger.debug(f"Received response: {response.text}")
 
     def _get_cid(self, public_metadata: str) -> str:
