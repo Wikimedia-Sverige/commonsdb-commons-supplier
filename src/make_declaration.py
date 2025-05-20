@@ -54,6 +54,7 @@ if __name__ == "__main__":
         files = [g.strip() for g in f]
 
     start_total_time = time()
+    error_files = []
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
         print(f"{i + 1}/{len(files)}: {f}")
@@ -63,6 +64,10 @@ if __name__ == "__main__":
         except Exception:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")
+            error_files.append(f)
         finally:
             print(f"File time: {time() - start_time:.0f}")
     print(f"Total time: {time() - start_total_time:.0f}")
+    if error_files:
+        print("Some requests failed. See log for details:")
+        print("\n".join(error_files))
