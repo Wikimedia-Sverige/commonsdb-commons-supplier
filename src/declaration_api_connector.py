@@ -94,7 +94,6 @@ class DeclarationApiConnector:
         commons_db_metadata = {
             "location": location,
             "rightsStatement": rights_statement,
-            "rationale": "<supplier rationale>",
             "cid": cid,
             "declarationId": declaration_id,
             "iscc": iscc,
@@ -121,7 +120,7 @@ class DeclarationApiConnector:
             "commonsDbRegistrySignature":
                 self._get_signature(commons_db_metadata),
             "commonsDbRegistryTsaSignature":
-                [self._get_tsa(commons_db_metadata, "commons-db-tsa")]
+                self._get_tsa(commons_db_metadata, "commons-db-tsa")
         }
         headers = {
             "User-Agent": "commonsdb-commons-supplier/0.0.1",
