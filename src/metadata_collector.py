@@ -7,7 +7,7 @@ from pywikibot.site import APISite
 class MetadataCollector:
     def __init__(self, commons_filename: str) -> None:
         # TODO: Move requests out of __init__.
-        self._site: APISite = pywikibot.Site()
+        self._site: APISite = pywikibot.Site("commons")
         self._page: FilePage = pywikibot.FilePage(self._site, commons_filename)
         self._filename = commons_filename
 

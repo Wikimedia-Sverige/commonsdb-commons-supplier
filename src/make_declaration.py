@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 def process_file(commons_filename, args):
     logger.info(f"Processing '{commons_filename}'.")
-    site = Site()
+    site = Site("commons")
     page = FilePage(site, commons_filename)
     filename = page.title(with_ns=False)
     storage = TemporaryDirectory()
