@@ -1,11 +1,11 @@
 import logging
 from argparse import ArgumentParser
-from tempfile import TemporaryDirectory
 from time import time
 
 from pywikibot import FilePage, Site
 
 from declaration_api_connector import DeclarationApiConnector
+from file_fetcher import FileFetcher
 from iscc_generator import IsccGenerator
 from metadata_collector import MetadataCollector
 
@@ -14,16 +14,14 @@ logger = logging.getLogger(__name__)
 
 def process_file(commons_filename, args):
     logger.info(f"Processing '{commons_filename}'.")
+
     site = Site()
     page = FilePage(site, commons_filename)
-    filename = page.title(with_ns=False)
-    storage = TemporaryDirectory()
-    path = f"{storage.name}/{filename}"
-    logger.info(f"Downloading file: '{filename}'")
-    page.download(path)
-    print(f"File size: {page.latest_file_info.size / 1024 / 1024:.0f} MB")
+    file_fetcher = FileFetcher()
 
-    metadata_collector = MetadataCollector(filename)
+    metadata_collector = MetadataCollector(site, page)
+    path = file_fetcher.fetch_file(page)
+    print(f"File size: {page.latest_file_info.size / 1024 / 1024:.0f} MB")
     iscc_generator = IsccGenerator(path)
     api_connector = DeclarationApiConnector(args.dry)
 

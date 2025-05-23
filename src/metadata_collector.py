@@ -1,15 +1,12 @@
-import pywikibot
 from pywikibot import FilePage
 from pywikibot.data.api import Request
 from pywikibot.site import APISite
 
 
 class MetadataCollector:
-    def __init__(self, commons_filename: str) -> None:
-        # TODO: Move requests out of __init__.
-        self._site: APISite = pywikibot.Site()
-        self._page: FilePage = pywikibot.FilePage(self._site, commons_filename)
-        self._filename = commons_filename
+    def __init__(self, site: APISite, page: FilePage) -> None:
+        self._site = site
+        self._page = page
 
     def get_url(self) -> str:
         try:
@@ -59,8 +56,9 @@ class MetadataCollector:
         return title.get("text")
 
     def _get_name_from_filename(self) -> str:
+        filename = self._page.title(with_ns=False)
         # Remove the file extension.
-        name_from_file = self._filename.rsplit(".", 1)[0]
+        name_from_file = filename.rsplit(".", 1)[0]
         return name_from_file
 
     def _get_sdc(self) -> dict:
