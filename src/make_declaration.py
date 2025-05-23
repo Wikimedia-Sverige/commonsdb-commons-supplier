@@ -1,6 +1,5 @@
 import logging
 from argparse import ArgumentParser
-from tempfile import TemporaryDirectory
 from time import time
 
 from pywikibot import FilePage, Site
