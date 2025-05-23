@@ -12,7 +12,7 @@ class MetadataCollector:
         try:
             url = self._page.latest_file_info.descriptionshorturl
         except Exception:
-            raise MissingMetadataError("Couldn't retrieve URL.")
+            raise MissingMetadataError("Couldn't get URL.")
 
         return url
 
@@ -77,16 +77,29 @@ class MetadataCollector:
         return entity
 
     def get_license(self) -> str:
-        return (self._get_license_for_depicted()
-                or self._get_license_for_image())
+        license = (self._get_license_for_depicted()
+                   or self._get_license_for_image())
+        if license is None:
+            raise MissingMetadataError("Couldn't get license.")
+        return license
 
     def _get_license_for_image(self) -> str:
         sdc = self._get_sdc()
         if sdc is None:
             return None
 
+        return self._get_license_for_item(sdc)
+
+    def _get_license_for_item(self, item) -> str:
+        # P6216 = "copyright status"
+        copyright_status = self._get_property(item, "P6216")
+        if copyright_status is not None:
+            copyright_item = copyright_status.get("id")
+            if copyright_item == "Q19652":
+                return "https://creativecommons.org/publicdomain/mark/1.0/"
+
         # P275 = "copyright license"
-        license_property = self._get_property(sdc, "P275")
+        license_property = self._get_property(item, "P275")
         if license_property is None:
             return None
 
@@ -102,16 +115,7 @@ class MetadataCollector:
         if depicted is None:
             return None
 
-        # P275 = "copyright license"
-        license_property = self._get_property(depicted, "P275")
-        if license_property is None:
-            return None
-
-        license_item_id = license_property.get("id")
-        license_item = self._get_entity(license_item_id)
-        # P856 = "official website"
-        license_url = self._get_property(license_item, "P856")
-        return license_url
+        return self._get_license_for_item(depicted)
 
     def _get_property(self, entity: dict, property_name: str):
         property_ = (

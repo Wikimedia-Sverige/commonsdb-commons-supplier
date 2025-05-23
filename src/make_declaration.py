@@ -29,10 +29,10 @@ def process_file(commons_filename, args):
         args.private_key_file
     )
 
-    logger.info("Getting name.")
-    name = metadata_collector.get_name()
     logger.info("Getting location.")
     location = metadata_collector.get_url()
+    logger.info("Getting name.")
+    name = metadata_collector.get_name()
     logger.info("Getting license.")
     license_url = metadata_collector.get_license()
     logger.info("Generating ISCC.")

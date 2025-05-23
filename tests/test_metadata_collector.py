@@ -145,6 +145,17 @@ class MetadataCollectorTestCase(TestCase):
 
         assert license == "www.license.org"
 
+    def test_get_public_domain_for_image(self):
+        self.FilePage.return_value.pageid = "123"
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
+        self._mock_response("M123", statements={"P6216": {"id": "Q19652"}})
+
+        license = metadata_collector.get_license()
+
+        assert license == "https://creativecommons.org/publicdomain/mark/1.0/"
+
     def test_get_license_for_depicted(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
@@ -157,3 +168,14 @@ class MetadataCollectorTestCase(TestCase):
         license = metadata_collector.get_license()
 
         assert license == "www.license.org"
+
+    def test_get_license_fails(self):
+        self.FilePage.return_value.pageid = "123"
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
+        self._mock_response("M123", statements={"P6243": {"id": "Q456"}})
+        self._mock_response("Q456", statements={})
+
+        with pytest.raises(MissingMetadataError):
+            metadata_collector.get_license()
