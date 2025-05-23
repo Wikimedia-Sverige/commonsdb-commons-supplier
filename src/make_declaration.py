@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 def process_file(commons_filename, args):
     logger.info(f"Processing '{commons_filename}'.")
 
-    site = Site()
+    site = Site("commons")
     page = FilePage(site, commons_filename)
     file_fetcher = FileFetcher()
 
@@ -23,7 +23,11 @@ def process_file(commons_filename, args):
     path = file_fetcher.fetch_file(page)
     print(f"File size: {page.latest_file_info.size / 1024 / 1024:.0f} MB")
     iscc_generator = IsccGenerator(path)
-    api_connector = DeclarationApiConnector(args.dry)
+    api_connector = DeclarationApiConnector(
+        args.dry,
+        args.member_credentials_file,
+        args.private_key_file
+    )
 
     logger.info("Getting name.")
     name = metadata_collector.get_name()
@@ -46,9 +50,12 @@ if __name__ == "__main__":
     )
     parser = ArgumentParser()
     parser.add_argument("--dry", "-d", action="store_true")
+    parser.add_argument("member_credentials_file")
+    parser.add_argument("private_key_file")
+    parser.add_argument("list_file")
     args = parser.parse_args()
 
-    with open("files.txt") as f:
+    with open(args.list_file) as f:
         files = [g.strip() for g in f]
 
     start_total_time = time()

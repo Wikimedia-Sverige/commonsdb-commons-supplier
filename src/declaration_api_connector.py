@@ -15,20 +15,21 @@ from dotenv import load_dotenv
 
 from exceptions import ReadFileError
 
-MEMBER_CREDENTIALS_PATH = "../wikimedia_supplier_of_openfuture.json"
-DID_WEB_CREDENTIALS_PATH = "../did_web_openfuture.json"
-PRIVATE_KEY_PATH = "../ec_private_key.pem"
 ENDPOINT = "https://b2c-api-main-e5886ec.d2.zuplo.dev/v1/declare"
 
 logger = logging.getLogger(__name__)
 
 
 class DeclarationApiConnector:
-    def __init__(self, dry: bool = False):
+    def __init__(
+        self,
+        dry: bool,
+        member_credentials_file,
+        private_key_file
+    ):
         self._dry = dry
-        self._member_credentials = self._read_json(MEMBER_CREDENTIALS_PATH)
-        self._did_web = self._read_json(DID_WEB_CREDENTIALS_PATH)
-        self._private_key = self._read_text(PRIVATE_KEY_PATH)
+        self._member_credentials = self._read_json(member_credentials_file)
+        self._private_key = self._read_text(private_key_file)
         load_dotenv()
         self._api_key = os.getenv("API_KEY")
         if self._api_key is None:

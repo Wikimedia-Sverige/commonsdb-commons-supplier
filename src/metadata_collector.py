@@ -4,7 +4,7 @@ from pywikibot.site import APISite
 
 
 class MetadataCollector:
-    def __init__(self, site: APISite, page: FilePage) -> None:
+    def __init__(self, site: APISite, page: FilePage):
         self._site = site
         self._page = page
 
