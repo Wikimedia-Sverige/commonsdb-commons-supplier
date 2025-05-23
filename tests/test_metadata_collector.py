@@ -72,17 +72,26 @@ class MetadataCollectorTestCase(TestCase):
         }
         self._responses[entity_id] = response
 
+    def _create_metadata_collector(self, filename):
+        site = self.Site()
+        page = self.FilePage(site, filename)
+        page.title.return_value = filename
+        return MetadataCollector(site, page)
+
     def test_get_url(self):
         self.FilePage.return_value.latest_file_info.descriptionshorturl = "https://commons.wikimedia.org/wiki/Special:Redirect/page/123"  # noqa: E501
-
-        metadata_collector = MetadataCollector("Image on Commons.jpeg")
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
 
         url = metadata_collector.get_url()
 
         assert url == "https://commons.wikimedia.org/wiki/Special:Redirect/page/123"  # noqa: E501
 
     def test_get_url_missing_file(self):
-        metadata_collector = MetadataCollector("Image NOT on Commons.jpeg")
+        metadata_collector = self._create_metadata_collector(
+            "Image NOT on Commons.jpeg"
+        )
         page_class = type(metadata_collector._page)
         error = NoPageError(page=metadata_collector._page)
         page_class.latest_file_info = PropertyMock(side_effect=error)
@@ -94,7 +103,9 @@ class MetadataCollectorTestCase(TestCase):
         self.FilePage.return_value.pageid = "123"
         self._mock_response("M123", statements={"P6243": {"id": "Q456"}})
         self._mock_response("Q456", labels={})
-        metadata_collector = MetadataCollector("Image on Commons.jpeg")
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
 
         name = metadata_collector.get_name()
 
@@ -104,14 +115,18 @@ class MetadataCollectorTestCase(TestCase):
         self.FilePage.return_value.pageid = "123"
         self._mock_response("M123", statements={"P6243": {"id": "Q456"}})
         self._mock_response("Q456", labels={"en": "Label"})
-        metadata_collector = MetadataCollector("Image on Commons.jpeg")
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
         name = metadata_collector.get_name()
 
         assert name == "Label"
 
     def test_get_name_from_title(self):
         self.FilePage.return_value.pageid = "123"
-        metadata_collector = MetadataCollector("Image on Commons.jpeg")
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
         self._mock_response("M123", statements={"P6243": {"id": "Q456"}})
         self._mock_response("Q456", claims={"P1476": {"text": "Title"}})
         name = metadata_collector.get_name()
@@ -120,7 +135,9 @@ class MetadataCollectorTestCase(TestCase):
 
     def test_get_license_for_image(self):
         self.FilePage.return_value.pageid = "123"
-        metadata_collector = MetadataCollector("Image on Commons.jpeg")
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
         self._mock_response("M123", statements={"P275": {"id": "Q456"}})
         self._mock_response("Q456", claims={"P856": "www.license.org"})
 
@@ -130,7 +147,9 @@ class MetadataCollectorTestCase(TestCase):
 
     def test_get_license_for_depicted(self):
         self.FilePage.return_value.pageid = "123"
-        metadata_collector = MetadataCollector("Image on Commons.jpeg")
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
         self._mock_response("M123", statements={"P6243": {"id": "Q456"}})
         self._mock_response("Q456", statements={"P275": {"id": "Q789"}})
         self._mock_response("Q789", claims={"P856": "www.license.org"})
