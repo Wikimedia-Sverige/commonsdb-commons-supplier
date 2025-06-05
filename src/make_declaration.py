@@ -1,8 +1,12 @@
+#! /usr/bin/env python
+
 import logging
+import os
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from time import time
 
+from dotenv import load_dotenv
 from pywikibot import FilePage, Site
 
 from declaration_api_connector import DeclarationApiConnector
@@ -17,6 +21,9 @@ logger = logging.getLogger(__name__)
 def process_file(
     commons_filename: str,
     args: Namespace,
+    api_key: str,
+    member_credentials_path: str,
+    private_key_path: str,
     journal: DeclarationJournal
 ):
     logger.info(f"Processing '{commons_filename}'.")
@@ -26,8 +33,9 @@ def process_file(
     metadata_collector = MetadataCollector(site, page)
     api_connector = DeclarationApiConnector(
         args.dry,
-        args.member_credentials_file,
-        args.private_key_file
+        api_key,
+        member_credentials_path,
+        private_key_path
     )
 
     matching_page_id = journal.get_image_hash_match(page.latest_file_info.sha1)
@@ -36,6 +44,7 @@ def process_file(
             f"Image hash is the same as for page id {matching_page_id}. "
             "Not generating ISCC."
         )
+        # TODO: get ISCC from journal.
     else:
         # TODO: Maybe add declaration even when it's a duplicate so it
         # doesn't need to be looked up on Commons?
@@ -71,13 +80,19 @@ def process_file(
     logger.info(f"Done with '{commons_filename}'.")
 
 
+def get_os_env(name) -> str:
+    value = os.getenv(name)
+    if value is None:
+        raise Exception(f"Required environment variable {name} not set.")
+
+    return value
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--dry", "-d", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--iscc", "-i", action="store_true")
-    parser.add_argument("member_credentials_file")
-    parser.add_argument("private_key_file")
     parser.add_argument("list_file")
     args = parser.parse_args()
 
@@ -88,6 +103,12 @@ if __name__ == "__main__":
         style="{"
     )
 
+    load_dotenv()
+    api_key = get_os_env("API_KEY")
+    member_credentials_file = get_os_env("MEMBER_CREDENTIALS_FILE")
+    private_key_file = get_os_env("PRIVATE_KEY_FILE")
+    declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
+
     with open(args.list_file) as f:
         files = [g.strip() for g in f]
 
@@ -97,11 +118,18 @@ if __name__ == "__main__":
     print(f"START: {timestamp}")
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
-        declaration_journal = create_journal("sqlite:///tmp.db")
+        declaration_journal = create_journal(declaration_journal_url)
         print(f"{i + 1}/{len(files)}: {f}")
         start_time = time()
         try:
-            process_file(f, args, declaration_journal)
+            process_file(
+                f,
+                args,
+                api_key,
+                member_credentials_file,
+                private_key_file,
+                declaration_journal
+            )
         except Exception:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")

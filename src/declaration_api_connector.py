@@ -2,7 +2,6 @@ import base64
 import hashlib
 import json
 import logging
-import os
 import subprocess
 from datetime import datetime
 from types import SimpleNamespace
@@ -11,7 +10,6 @@ import jwt
 import multihash
 import requests
 from base58 import b58encode
-from dotenv import load_dotenv
 
 from exceptions import ReadFileError
 
@@ -24,16 +22,14 @@ class DeclarationApiConnector:
     def __init__(
         self,
         dry: bool,
-        member_credentials_file,
-        private_key_file
+        api_key: str,
+        member_credentials_path: str,
+        private_key_path: str
     ):
         self._dry = dry
-        self._member_credentials = self._read_json(member_credentials_file)
-        self._private_key = self._read_text(private_key_file)
-        load_dotenv()
-        self._api_key = os.getenv("API_KEY")
-        if self._api_key is None:
-            raise Exception("Environment variable API_KEY not set.")
+        self._member_credentials = self._read_json(member_credentials_path)
+        self._private_key = self._read_text(private_key_path)
+        self._api_key = api_key
 
     def _read_json(self, path: str) -> dict:
         try:
