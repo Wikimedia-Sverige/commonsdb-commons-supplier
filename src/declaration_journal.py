@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, String, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 
@@ -15,8 +15,8 @@ class Declaration(Base):
     timestamp: Mapped[datetime]
     page_id: Mapped[int]
     revision_id: Mapped[int]
-    image_hash: Mapped[str] = mapped_column(nullable=True)
-    iscc: Mapped[str] = mapped_column(nullable=True)
+    image_hash: Mapped[str] = mapped_column(String(41), nullable=True)
+    iscc: Mapped[str] = mapped_column(String(61), nullable=True)
 
     def __repr__(self) -> str:
         return f"Declaration(id={self.id!r}, timestamp={self.timestamp!r}, page_id={self.page_id!r}, revision_id={self.revision_id!r}, image_hash={self.image_hash!r}, iscc={self.iscc!r})"  # noqa: E501
