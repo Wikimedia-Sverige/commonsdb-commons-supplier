@@ -76,8 +76,8 @@ class DeclarationJournal:
         return declaration.page_id
 
 
-def create_journal(database_url: str):
-    engine = create_engine(database_url)
+def create_journal(engine):
+    # engine = create_engine(database_url)
     with Session(engine, expire_on_commit=False) as session, session.begin():
         journal = DeclarationJournal(engine, session)
 

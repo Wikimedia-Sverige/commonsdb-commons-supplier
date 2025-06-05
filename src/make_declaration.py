@@ -8,6 +8,7 @@ from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
+from sqlalchemy import create_engine
 
 from declaration_api_connector import DeclarationApiConnector
 from declaration_journal import DeclarationJournal, create_journal
@@ -115,10 +116,12 @@ if __name__ == "__main__":
     start_total_time = time()
     error_files = []
     timestamp = datetime.now().replace(microsecond=0)
+    engine = create_engine(declaration_journal_url)
     print(f"START: {timestamp}")
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
-        declaration_journal = create_journal(declaration_journal_url)
+        print(engine.pool.status())
+        declaration_journal = create_journal(engine)
         print(f"{i + 1}/{len(files)}: {f}")
         start_time = time()
         try:
