@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import create_engine, String, select
+from sqlalchemy import String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 
