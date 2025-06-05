@@ -115,10 +115,10 @@ if __name__ == "__main__":
     start_total_time = time()
     error_files = []
     timestamp = datetime.now().replace(microsecond=0)
+    declaration_journal = create_journal(declaration_journal_url)
     print(f"START: {timestamp}")
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
-        declaration_journal = create_journal(declaration_journal_url)
         print(f"{i + 1}/{len(files)}: {f}")
         start_time = time()
         try:
