@@ -1,0 +1,84 @@
+from datetime import datetime
+
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class Declaration(Base):
+    __tablename__ = "declaration"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    timestamp: Mapped[datetime]
+    page_id: Mapped[int]
+    revision_id: Mapped[int]
+    image_hash: Mapped[str] = mapped_column(nullable=True)
+    iscc: Mapped[str] = mapped_column(nullable=True)
+
+    def __repr__(self) -> str:
+        return f"Declaration(id={self.id!r}, timestamp={self.timestamp!r}, page_id={self.page_id!r}, revision_id={self.revision_id!r}, image_hash={self.image_hash!r}, iscc={self.iscc!r})"  # noqa: E501
+
+
+class DeclarationJournal:
+    def __init__(self, engine, session):
+        self._session = session
+        Base.metadata.create_all(engine)
+
+    def add_declaration(
+        self,
+        page_id: int,
+        revision_id: int
+    ) -> int:
+        declaration = Declaration(
+            page_id=page_id,
+            timestamp=datetime.now(),
+            revision_id=revision_id
+        )
+        self._session.add(declaration)
+        self._session.commit()
+        return declaration.id
+
+    def update_declaration(
+        self,
+        declaration_id: int,
+        revision_id: int | None = None,
+        image_hash: str | None = None,
+        iscc: str | None = None
+    ):
+        statement = select(Declaration).where(Declaration.id == declaration_id)
+        declaration = self._session.scalars(statement).one_or_none()
+        if declaration is None:
+            return
+
+        if revision_id is not None:
+            declaration.revision_id = revision_id
+        if image_hash is not None:
+            declaration.image_hash = image_hash
+        if iscc is not None:
+            declaration.iscc = iscc
+        self._session.commit()
+
+    def get_declarations(self) -> list[Declaration]:
+        statement = select(Declaration)
+        result = self._session.scalars(statement).all()
+
+        return result
+
+    def get_image_hash_match(self, hash: str) -> int:
+        statement = select(Declaration).where(Declaration.image_hash == hash)
+        declaration = self._session.scalars(statement).one_or_none()
+        if declaration is None:
+            return None
+
+        return declaration.page_id
+
+
+def create_journal(database_url: str):
+    engine = create_engine(database_url)
+    with Session(engine, expire_on_commit=False) as session, session.begin():
+        journal = DeclarationJournal(engine, session)
+
+    return journal

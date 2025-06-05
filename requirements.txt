@@ -5,3 +5,4 @@ requests==2.32.3
 PyJWT[crypto]==2.10.1
 py-multihash==2.0.1
 base58==2.1.1
+SQLAlchemy==2.0.41
