@@ -117,11 +117,11 @@ if __name__ == "__main__":
     error_files = []
     timestamp = datetime.now().replace(microsecond=0)
     engine = create_engine(declaration_journal_url)
+    declaration_journal = create_journal(engine)
     print(f"START: {timestamp}")
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
         print(engine.pool.status())
-        declaration_journal = create_journal(engine)
         print(f"{i + 1}/{len(files)}: {f}")
         start_time = time()
         try:
