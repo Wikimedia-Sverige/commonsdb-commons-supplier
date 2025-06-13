@@ -21,6 +21,14 @@ PRIVATE_KEY_FILE=<path to private key used to generate signatureds for the decla
 DECLARATION_JOURNAL_URL=<URL to the database used by the declaration journal, for more info see https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls>
 ```
 
+### Database
+
+Database versions are handled by [Alembic](https://alembic.sqlalchemy.org/). To upgrade the database run
+
+`alembic upgrade head`
+
+This should be done any time the code is updated. Remember to back up the database first.
+
 ## Development
 
 It's recommended to do development with [Venv](https://docs.python.org/3/library/venv.html). To set up the environment run:

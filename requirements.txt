@@ -7,3 +7,4 @@ py-multihash==2.0.1
 base58==2.1.1
 SQLAlchemy==2.0.41
 PyMySQL==1.1.1
+alembic==1.16.1
