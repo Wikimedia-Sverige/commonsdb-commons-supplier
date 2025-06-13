@@ -1,10 +1,10 @@
 import os
 from logging.config import fileConfig
 
+from alembic import context
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, pool
 
-from alembic import context
 from src import declaration_journal
 
 # this is the Alembic Config object, which provides
