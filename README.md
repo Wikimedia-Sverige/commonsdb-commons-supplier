@@ -23,9 +23,11 @@ DECLARATION_JOURNAL_URL=<URL to the database used by the declaration journal, fo
 
 ### Database
 
-Database versions are handled by [Alembic](https://alembic.sqlalchemy.org/). To upgrade the database run
+Database versions are handled by [Alembic](https://alembic.sqlalchemy.org/). To upgrade the database run:
 
-`alembic upgrade head`
+```
+alembic upgrade head`
+```
 
 This should be done any time the code is updated. Remember to back up the database first.
 
