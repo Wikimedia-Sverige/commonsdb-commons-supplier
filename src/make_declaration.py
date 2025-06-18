@@ -38,33 +38,45 @@ def process_file(
         private_key_path
     )
 
-    matching_page_id = journal.get_image_hash_match(page.latest_file_info.sha1)
-    if matching_page_id is not None:
+    declaration = journal.get_page_id_match(page.pageid)
+    if declaration is not None:
         logger.info(
-            f"Image hash is the same as for page id {matching_page_id}. "
-            "Not generating ISCC."
+            f"Page id is the same as for declaration with id {declaration.id}."
         )
-        # TODO: get ISCC from journal.
     else:
-        # TODO: Maybe add declaration even when it's a duplicate so it
-        # doesn't need to be looked up on Commons?
-        declaration_id = journal.add_declaration(
+        declaration = journal.add_declaration(
             page_id=page.pageid,
-            revision_id=page.latest_revision_id
+            revision_id=page.latest_revision_id,
+            image_hash=page.latest_file_info.sha1
         )
-        file_fetcher = FileFetcher()
-        path = file_fetcher.fetch_file(page)
-        print(f"File size: {page.latest_file_info.size / 1024 / 1024:.0f} MB")
 
-        iscc_generator = IsccGenerator(path)
-        logger.info("Generating ISCC.")
-        iscc = iscc_generator.generate()
-
-        journal.update_declaration(
-            declaration_id,
-            image_hash=page.latest_file_info.sha1,
-            iscc=iscc
+    if declaration.iscc is None:
+        # Add ISCC.
+        matching_declaration = journal.get_image_hash_match(
+            page.latest_file_info.sha1
         )
+        if (matching_declaration is not None
+                and matching_declaration != declaration):
+            # The same image hash should result in the same ISCC. Just use the
+            # one we already have instead of generating it again.
+            logger.info(
+                f"Image hash is the same as for id {matching_declaration.id}. "
+                "Using the same ISCC instead of generating."
+            )
+            journal.update_declaration(
+                declaration,
+                iscc=matching_declaration.iscc
+            )
+        else:
+            # Download file and generate ISCC.
+            file_fetcher = FileFetcher()
+            path = file_fetcher.fetch_file(page)
+            size_mb = page.latest_file_info.size / 1024 / 1024
+            print(f"File size: {size_mb:.0f} MB")
+            iscc_generator = IsccGenerator(path)
+            logger.info("Generating ISCC.")
+            iscc = iscc_generator.generate()
+            journal.update_declaration(declaration, iscc=iscc)
 
     if args.iscc:
         return

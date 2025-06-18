@@ -39,27 +39,27 @@ class DeclarationJournal:
     def add_declaration(
         self,
         page_id: int,
-        revision_id: int
-    ) -> int:
+        revision_id: int,
+        image_hash: str
+    ) -> Declaration:
         declaration = Declaration(
             page_id=page_id,
             created_timestamp=datetime.now(),
             updated_timestamp=datetime.now(),
-            revision_id=revision_id
+            revision_id=revision_id,
+            image_hash=image_hash
         )
         self._session.add(declaration)
         self._session.commit()
-        return declaration.id
+        return declaration
 
     def update_declaration(
         self,
-        declaration_id: int,
+        declaration: Declaration,
         revision_id: int | None = None,
         image_hash: str | None = None,
         iscc: str | None = None
     ):
-        statement = select(Declaration).where(Declaration.id == declaration_id)
-        declaration = self._session.scalars(statement).one_or_none()
         if declaration is None:
             return
 
@@ -84,13 +84,21 @@ class DeclarationJournal:
 
         return result
 
-    def get_image_hash_match(self, hash: str) -> int:
+    def get_page_id_match(self, page_id: int) -> Declaration:
+        statement = select(Declaration).where(Declaration.page_id == page_id)
+        declaration = self._session.scalars(statement).one_or_none()
+        if declaration is None:
+            return None
+
+        return declaration
+
+    def get_image_hash_match(self, hash: str) -> Declaration:
         statement = select(Declaration).where(Declaration.image_hash == hash)
         declaration = self._session.scalars(statement).one_or_none()
         if declaration is None:
             return None
 
-        return declaration.page_id
+        return declaration
 
 
 def create_journal(database_url: str):
