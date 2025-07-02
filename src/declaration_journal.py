@@ -1,9 +1,14 @@
+import inspect
+import logging
 from datetime import datetime
+from typing import Optional
 
 import alembic
 from alembic.config import Config
 from sqlalchemy import String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+
+logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -18,11 +23,25 @@ class Declaration(Base):
     updated_timestamp: Mapped[datetime]
     page_id: Mapped[int]
     revision_id: Mapped[int]
-    image_hash: Mapped[str] = mapped_column(String(41), nullable=True)
-    iscc: Mapped[str] = mapped_column(String(61), nullable=True)
+    image_hash: Mapped[Optional[str]] = mapped_column(String(41))
+    file_size: Mapped[Optional[int]]
+    download_time: Mapped[Optional[float]]
+    iscc: Mapped[Optional[str]] = mapped_column(String(61))
+    iscc_time: Mapped[Optional[float]]
 
     def __repr__(self) -> str:
-        return f"Declaration(id={self.id!r}, created_timestamp={self.created_timestamp!r}, updated_timestamp={self.updated_timestamp!r}, page_id={self.page_id!r}, revision_id={self.revision_id!r}, image_hash={self.image_hash!r}, iscc={self.iscc!r})"  # noqa: E501
+        fields = {}
+        for attribute, value in inspect.getmembers(self):
+            if attribute in ["registry", "metadata"]:
+                # These come from DeclarativeBase.
+                continue
+
+            if attribute.startswith("_"):
+                continue
+
+            fields[attribute] = value
+
+        return f"Declaration {fields}"
 
 
 class DeclarationJournal:
@@ -36,47 +55,30 @@ class DeclarationJournal:
             alembic_cfg = Config("alembic.ini")
             alembic.command.upgrade(alembic_cfg, "head")
 
-    def add_declaration(
-        self,
-        page_id: int,
-        revision_id: int,
-        image_hash: str
-    ) -> Declaration:
+    def add_declaration(self, **kwargs) -> Declaration:
+        now = datetime.now()
         declaration = Declaration(
-            page_id=page_id,
-            created_timestamp=datetime.now(),
-            updated_timestamp=datetime.now(),
-            revision_id=revision_id,
-            image_hash=image_hash
+            created_timestamp=now,
+            updated_timestamp=now,
+            **kwargs
         )
         self._session.add(declaration)
         self._session.commit()
         return declaration
 
-    def update_declaration(
-        self,
-        declaration: Declaration,
-        revision_id: int | None = None,
-        image_hash: str | None = None,
-        iscc: str | None = None
-    ):
+    def update_declaration(self, declaration: Declaration, **kwargs):
         if declaration is None:
             return
 
-        changed = False
-        if revision_id is not None:
-            declaration.revision_id = revision_id
-            changed = True
-        if image_hash is not None:
-            declaration.image_hash = image_hash
-            changed = True
-        if iscc is not None:
-            declaration.iscc = iscc
-            changed = True
+        for field, value in kwargs.items():
+            if not hasattr(declaration, field):
+                logger.warning(f"Not updating unknown field: '{field}'.")
+                continue
 
-        if changed:
-            declaration.updated_timestamp = datetime.now()
-            self._session.commit()
+            setattr(declaration, field, value)
+
+        declaration.updated_timestamp = datetime.now()
+        self._session.commit()
 
     def get_declarations(self) -> list[Declaration]:
         statement = select(Declaration)
