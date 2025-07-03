@@ -1,18 +1,32 @@
 import inspect
 import logging
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional, Set
 
 import alembic
 from alembic.config import Config
-from sqlalchemy import String, create_engine, select
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy import Column, ForeignKey, String, Table, create_engine, select
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    Session,
+    mapped_column,
+    relationship
+)
 
 logger = logging.getLogger(__name__)
 
 
 class Base(DeclarativeBase):
     pass
+
+
+tag_association = Table(
+    "tag_association",
+    Base.metadata,
+    Column("declartion_id", ForeignKey("declaration.id"), primary_key=True),
+    Column("tag_id", ForeignKey("tag.id"), primary_key=True),
+)
 
 
 class Declaration(Base):
@@ -28,20 +42,28 @@ class Declaration(Base):
     download_time: Mapped[Optional[float]]
     iscc: Mapped[Optional[str]] = mapped_column(String(61))
     iscc_time: Mapped[Optional[float]]
+    tags: Mapped[Set["Tag"]] = relationship(secondary=tag_association)
 
     def __repr__(self) -> str:
-        fields = {}
-        for attribute, value in inspect.getmembers(self):
-            if attribute in ["registry", "metadata"]:
-                # These come from DeclarativeBase.
-                continue
-
-            if attribute.startswith("_"):
-                continue
-
-            fields[attribute] = value
-
+        fields = get_fields(self)
         return f"Declaration {fields}"
+
+
+class Tag(Base):
+    __tablename__ = "tag"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    label: Mapped[str] = mapped_column(String(50))
+
+    def __repr__(self) -> str:
+        fields = get_fields(self)
+        return f"Tag {fields}"
+
+    def __eq__(self, other):
+        return other.label == other.label
+
+    def __hash__(self):
+        return hash(self.label)
 
 
 class DeclarationJournal:
@@ -55,11 +77,21 @@ class DeclarationJournal:
             alembic_cfg = Config("alembic.ini")
             alembic.command.upgrade(alembic_cfg, "head")
 
-    def add_declaration(self, **kwargs) -> Declaration:
+    def add_declaration(self, tag_labels: List[str], **kwargs) -> Declaration:
+        tags = set()
+        for label in tag_labels:
+            statement = select(Tag).where(Tag.label == label)
+            tag = self._session.scalars(statement).one_or_none()
+            if tag is None:
+                tag = Tag(label=label)
+                self._session.add(tag)
+            tags.add(tag)
+
         now = datetime.now()
         declaration = Declaration(
             created_timestamp=now,
             updated_timestamp=now,
+            tags=tags,
             **kwargs
         )
         self._session.add(declaration)
@@ -109,3 +141,18 @@ def create_journal(database_url: str):
         journal = DeclarationJournal(engine, session)
 
     return journal
+
+
+def get_fields(journal_item) -> dict:
+    fields = {}
+    for attribute, value in inspect.getmembers(journal_item):
+        if attribute in ["registry", "metadata"]:
+            # These come from DeclarativeBase.
+            continue
+
+        if attribute.startswith("_"):
+            continue
+
+        fields[attribute] = value
+
+    return fields
