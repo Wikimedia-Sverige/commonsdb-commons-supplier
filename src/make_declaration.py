@@ -69,14 +69,24 @@ def process_file(
             )
         else:
             # Download file and generate ISCC.
+            download_start_time = time()
             file_fetcher = FileFetcher()
             path = file_fetcher.fetch_file(page)
             size_mb = page.latest_file_info.size / 1024 / 1024
             print(f"File size: {size_mb:.0f} MB")
+            download_time = time() - download_start_time
+            iscc_start_time = time()
             iscc_generator = IsccGenerator(path)
             logger.info("Generating ISCC.")
             iscc = iscc_generator.generate()
-            journal.update_declaration(declaration, iscc=iscc)
+            iscc_time = time() - iscc_start_time
+            journal.update_declaration(
+                declaration,
+                file_size=page.latest_file_info.size,
+                download_time=download_time,
+                iscc=iscc,
+                iscc_time=iscc_time
+            )
 
     if args.iscc:
         return
