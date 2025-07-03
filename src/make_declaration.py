@@ -46,8 +46,10 @@ def process_file(
             f"Page id is the same as for declaration with id {declaration.id}."
         )
     else:
+        tags = set(args.tag)
+        tags.add(batch_name)
         declaration = journal.add_declaration(
-            [batch_name],
+            tags,
             page_id=page.pageid,
             revision_id=page.latest_revision_id,
             image_hash=page.latest_file_info.sha1
@@ -119,6 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--iscc", "-i", action="store_true")
     parser.add_argument("--quit-on-error", "-q", action="store_true")
+    parser.add_argument("--tag", "-t", action="append")
     parser.add_argument("list_file")
     args = parser.parse_args()
 
