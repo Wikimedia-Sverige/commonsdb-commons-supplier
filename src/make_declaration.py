@@ -4,6 +4,7 @@ import logging
 import os
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
+from pathlib import Path
 from time import time
 
 from dotenv import load_dotenv
@@ -24,7 +25,8 @@ def process_file(
     api_key: str,
     member_credentials_path: str,
     private_key_path: str,
-    journal: DeclarationJournal
+    journal: DeclarationJournal,
+    batch_name: str
 ):
     logger.info(f"Processing '{commons_filename}'.")
 
@@ -45,6 +47,7 @@ def process_file(
         )
     else:
         declaration = journal.add_declaration(
+            [batch_name],
             page_id=page.pageid,
             revision_id=page.latest_revision_id,
             image_hash=page.latest_file_info.sha1
@@ -115,6 +118,7 @@ if __name__ == "__main__":
     parser.add_argument("--dry", "-d", action="store_true")
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--iscc", "-i", action="store_true")
+    parser.add_argument("--quit-on-error", "-q", action="store_true")
     parser.add_argument("list_file")
     args = parser.parse_args()
 
@@ -138,6 +142,7 @@ if __name__ == "__main__":
     error_files = []
     timestamp = datetime.now().replace(microsecond=0)
     declaration_journal = create_journal(declaration_journal_url)
+    batch_name = f"batch:{Path(args.list_file).stem}"
     print(f"START: {timestamp}")
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
@@ -150,12 +155,15 @@ if __name__ == "__main__":
                 api_key,
                 member_credentials_file,
                 private_key_file,
-                declaration_journal
+                declaration_journal,
+                batch_name
             )
         except Exception:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")
             error_files.append(f)
+            if args.quit_on_error:
+                break
         finally:
             print(f"File time: {time() - start_time:.0f}")
     print(f"Total time: {time() - start_total_time:.0f}")
