@@ -39,6 +39,8 @@ class Declaration(Base):
     revision_id: Mapped[int]
     image_hash: Mapped[Optional[str]] = mapped_column(String(41))
     file_size: Mapped[Optional[int]]
+    width: Mapped[Optional[int]]
+    height: Mapped[Optional[int]]
     download_time: Mapped[Optional[float]]
     iscc: Mapped[Optional[str]] = mapped_column(String(61))
     iscc_time: Mapped[Optional[float]]

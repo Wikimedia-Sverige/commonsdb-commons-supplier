@@ -76,18 +76,20 @@ def process_file(
             # Download file and generate ISCC.
             download_start_time = time()
             file_fetcher = FileFetcher()
-            path = file_fetcher.fetch_file(page)
-            size_mb = page.latest_file_info.size / 1024 / 1024
-            print(f"File size: {size_mb:.0f} MB")
+            path, file_size, width, height = file_fetcher.fetch_file(page)
             download_time = time() - download_start_time
+
             iscc_start_time = time()
             iscc_generator = IsccGenerator(path)
             logger.info("Generating ISCC.")
             iscc = iscc_generator.generate()
             iscc_time = time() - iscc_start_time
+
             journal.update_declaration(
                 declaration,
-                file_size=page.latest_file_info.size,
+                file_size=file_size,
+                width=width,
+                height=height,
                 download_time=download_time,
                 iscc=iscc,
                 iscc_time=iscc_time
@@ -121,7 +123,7 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--iscc", "-i", action="store_true")
     parser.add_argument("--quit-on-error", "-q", action="store_true")
-    parser.add_argument("--tag", "-t", action="append")
+    parser.add_argument("--tag", "-t", action="append", default=[])
     parser.add_argument("list_file")
     args = parser.parse_args()
 
