@@ -11,8 +11,6 @@ import multihash
 import requests
 from base58 import b58encode
 
-from exceptions import ReadFileError
-
 ENDPOINT = "https://b2c-api-main-e5886ec.d2.zuplo.dev/v1/declare"
 
 logger = logging.getLogger(__name__)
@@ -197,3 +195,8 @@ class DeclarationApiConnector:
             tsr_file.write(r.content)
 
         return {"tsq": tsq, "tsr": tsr}
+
+
+class ReadFileError(Exception):
+    def __init__(self, path):
+        super().__init__(f"Failed reading file: '{path}'")
