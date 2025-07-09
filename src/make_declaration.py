@@ -145,7 +145,7 @@ if __name__ == "__main__":
 
     start_total_time = time()
     error_files = []
-    timestamp = datetime.now().replace(microsecond=0)
+    timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     declaration_journal = create_journal(declaration_journal_url)
     batch_name = f"batch:{Path(args.list_file).stem}"
     print(f"START: {timestamp}")
@@ -175,5 +175,5 @@ if __name__ == "__main__":
     if error_files:
         print("Some requests failed. See log for details:")
         print("\n".join(error_files))
-    timestamp = datetime.now().replace(microsecond=0)
+    timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"DONE: {timestamp}")
