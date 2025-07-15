@@ -3,15 +3,13 @@ import hashlib
 import json
 import logging
 import subprocess
-from datetime import datetime
+import time
 from types import SimpleNamespace
 
 import jwt
 import multihash
 import requests
 from base58 import b58encode
-
-ENDPOINT = "https://b2c-api-main-e5886ec.d2.zuplo.dev/v1/declare"
 
 logger = logging.getLogger(__name__)
 
@@ -20,13 +18,16 @@ class DeclarationApiConnector:
     def __init__(
         self,
         dry: bool,
+        api_endpoint: str,
         api_key: str,
         member_credentials_path: str,
         private_key_path: str
     ):
         self._dry = dry
-        self._member_credentials = self._read_json(member_credentials_path)
+        self._member_credentials = (self._read_json(member_credentials_path)
+                                    .get("verifiableCredential"))
         self._private_key = self._read_text(private_key_path)
+        self._api_endpoint = api_endpoint
         self._api_key = api_key
 
     def _read_json(self, path: str) -> dict:
@@ -50,62 +51,29 @@ class DeclarationApiConnector:
         location: str,
         rights_statement: str
     ):
-        timestamp = (datetime.now()
-                     .astimezone()
-                     .replace(microsecond=0)
-                     .isoformat())
+        # Epoch time in milliseconds.
+        timestamp = int(time.time() * 1000)
         public_metadata = {
-            "$schema": "$schema",
             "iscc": iscc,
             "name": name,
-            "description": "description",
-            "mediatype": "mediatype",
-            "thumbnail": "thumbnail",
-            "redirect": "redirect",
-            "sourceUrl": "sourceUrl",
             "original": True,
             "version": 0,
-            "entryUUID": "entryUUID",
-            "createdAt": "createdAt",
-            "updatedAt": "updatedAt",
             "timestamp": timestamp,
-            "declarerId": "declarerId",
-            "regId": "000001",
-            "declarationIdVersion": "01",
             "credentials": [self._member_credentials],
             "supplierData": {
-                "creationDate": "<supplier creationDate>",
-                "creator": "<supplier creator>",
                 "location": location,
                 "rightsStatement": rights_statement,
-                "pdRationale": "<supplier pdRationale>",
-                "attributionString": "<supplier attributionString>",
-                "steward": "<supplier steward>"
             }
         }
-        cid = self._get_cid(public_metadata)
-        declaration_id = self._get_declaration_id(public_metadata, cid)
         proof = self._member_credentials.get("proof").get("jwt")
         commons_db_metadata = {
             "location": location,
             "rightsStatement": rights_statement,
-            "cid": cid,
-            "declarationId": declaration_id,
             "iscc": iscc,
             "credentials": [{"proof": proof}],
             "timestamp": timestamp
         }
-        did_key = (self._member_credentials
-                   .get("credentialSubject", {})
-                   .get("id"))
         data = {
-            "metaInternal": {
-                "companyId": did_key,
-                "declarerId": did_key,
-                "isccCode": iscc,
-                "declarationId": declaration_id,
-                "cid": cid
-            },
             "signature": self._get_signature(public_metadata),
             "tsaSignature": self._get_tsa(public_metadata, "tsa"),
             "declarationMetadata": {
@@ -121,12 +89,13 @@ class DeclarationApiConnector:
             "User-Agent": "commonsdb-commons-supplier/0.0.1",
             "Authorization": f"Bearer {self._api_key}",
         }
-        logger.info(f"Sending request to '{ENDPOINT}'.")
+        logger.info(f"Sending request to '{self._api_endpoint}'.")
         logger.debug(f"POST: {json.dumps(data)}")
         if self._dry:
             response = SimpleNamespace(text="DRY RESPONSE")
         else:
-            response = requests.post(ENDPOINT, json=data, headers=headers)
+            response = requests.post(
+                self._api_endpoint, json=data, headers=headers)
         logger.debug(f"Received response: {response.text}")
 
     def _get_cid(self, public_metadata: str) -> str:
