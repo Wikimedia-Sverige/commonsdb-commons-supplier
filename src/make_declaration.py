@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 def process_file(
     commons_filename: str,
     args: Namespace,
+    api_endpoint: str,
     api_key: str,
     member_credentials_path: str,
     private_key_path: str,
@@ -35,6 +36,7 @@ def process_file(
     metadata_collector = MetadataCollector(site, page)
     api_connector = DeclarationApiConnector(
         args.dry,
+        api_endpoint,
         api_key,
         member_credentials_path,
         private_key_path
@@ -135,6 +137,7 @@ if __name__ == "__main__":
     )
 
     load_dotenv()
+    api_endpoint = get_os_env("API_ENDPOINT")
     api_key = get_os_env("API_KEY")
     member_credentials_file = get_os_env("MEMBER_CREDENTIALS_FILE")
     private_key_file = get_os_env("PRIVATE_KEY_FILE")
@@ -157,6 +160,7 @@ if __name__ == "__main__":
             process_file(
                 f,
                 args,
+                api_endpoint,
                 api_key,
                 member_credentials_file,
                 private_key_file,
