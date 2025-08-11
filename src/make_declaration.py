@@ -96,6 +96,8 @@ def process_file(
                 iscc=iscc,
                 iscc_time=iscc_time
             )
+    else:
+        iscc = declaration.iscc
 
     if args.iscc:
         return
