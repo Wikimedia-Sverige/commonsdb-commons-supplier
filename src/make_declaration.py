@@ -27,11 +27,11 @@ def process_file(
     member_credentials_path: str,
     private_key_path: str,
     journal: DeclarationJournal,
+    site: Site,
     batch_name: str
 ):
     logger.info(f"Processing '{commons_filename}'.")
 
-    site = Site("commons")
     page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
     api_connector = DeclarationApiConnector(
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--iscc", "-i", action="store_true")
     parser.add_argument("--quit-on-error", "-q", action="store_true")
     parser.add_argument("--tag", "-t", action="append", default=[])
-    parser.add_argument("list_file")
+    parser.add_argument("files")
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.INFO
@@ -145,14 +145,22 @@ if __name__ == "__main__":
     private_key_file = get_os_env("PRIVATE_KEY_FILE")
     declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
 
-    with open(args.list_file) as f:
-        files = [g.strip() for g in f]
+    declaration_journal = create_journal(declaration_journal_url)
+    if os.path.exists(args.files):
+        with open(args.files) as f:
+            files = [g.strip() for g in f]
+        batch_name = f"batch:{Path(args.files).stem}"
+    else:
+        files_tag = args.files
+        declarations = declaration_journal.get_declarations(files_tag)
+        site = Site("commons")
+        files = [f.title() for f in site.load_pages_from_pageids(
+            [d.page_id for d in declarations])]
+        batch_name = args.files
 
     start_total_time = time()
     error_files = []
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
-    declaration_journal = create_journal(declaration_journal_url)
-    batch_name = f"batch:{Path(args.list_file).stem}"
     print(f"START: {timestamp}")
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
@@ -167,6 +175,7 @@ if __name__ == "__main__":
                 member_credentials_file,
                 private_key_file,
                 declaration_journal,
+                site,
                 batch_name
             )
         except Exception:

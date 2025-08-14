@@ -114,11 +114,13 @@ class DeclarationJournal:
         declaration.updated_timestamp = datetime.now()
         self._session.commit()
 
-    def get_declarations(self) -> list[Declaration]:
+    def get_declarations(self, tag: str = None) -> list[Declaration]:
         statement = select(Declaration)
-        result = self._session.scalars(statement).all()
+        if tag is not None:
+            statement = statement.join(Declaration.tags.and_(Tag.label == tag))
 
-        return result
+        declarations = self._session.scalars(statement).all()
+        return declarations
 
     def get_page_id_match(self, page_id: int) -> Declaration:
         statement = select(Declaration).where(Declaration.page_id == page_id)
