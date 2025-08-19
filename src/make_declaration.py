@@ -191,7 +191,7 @@ if __name__ == "__main__":
             if args.rate_limit is not None:
                 wait_time = args.rate_limit - process_time
                 if wait_time > 0:
-                    logging.debug(
+                    logger.debug(
                         f"Waiting {wait_time} seconds for rate limit.")
                     sleep(wait_time)
 
