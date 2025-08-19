@@ -5,7 +5,7 @@ import os
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
-from time import time
+from time import sleep, time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
@@ -128,6 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--iscc", "-i", action="store_true")
     parser.add_argument("--quit-on-error", "-q", action="store_true")
     parser.add_argument("--tag", "-t", action="append", default=[])
+    parser.add_argument("--rate-limit", "-r", type=float)
     parser.add_argument("files")
     args = parser.parse_args()
 
@@ -185,7 +186,13 @@ if __name__ == "__main__":
             if args.quit_on_error:
                 break
         finally:
-            print(f"File time: {time() - start_time:.0f}")
+            process_time = time() - start_time
+            print(f"File time: {process_time:.0f}")
+            wait_time = args.rate_limit - process_time
+            if wait_time > 0:
+                logging.debug(f"Waiting {wait_time} seconds for rate limit.")
+                sleep(wait_time)
+
     print(f"Total time: {time() - start_total_time:.0f}")
     if error_files:
         print("Some requests failed. See log for details:")
