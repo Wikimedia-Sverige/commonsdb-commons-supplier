@@ -188,10 +188,12 @@ if __name__ == "__main__":
         finally:
             process_time = time() - start_time
             print(f"File time: {process_time:.0f}")
-            wait_time = args.rate_limit - process_time
-            if wait_time > 0:
-                logging.debug(f"Waiting {wait_time} seconds for rate limit.")
-                sleep(wait_time)
+            if args.rate_limit is not None:
+                wait_time = args.rate_limit - process_time
+                if wait_time > 0:
+                    logging.debug(
+                        f"Waiting {wait_time} seconds for rate limit.")
+                    sleep(wait_time)
 
     print(f"Total time: {time() - start_total_time:.0f}")
     if error_files:
