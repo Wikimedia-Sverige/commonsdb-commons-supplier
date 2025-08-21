@@ -50,7 +50,7 @@ class DeclarationApiConnector:
         iscc: str,
         location: str,
         rights_statement: str
-    ):
+    ) -> str:
         # Epoch time in milliseconds.
         timestamp = int(time.time() * 1000)
         public_metadata = {
@@ -92,11 +92,20 @@ class DeclarationApiConnector:
         logger.info(f"Sending request to '{self._api_endpoint}'.")
         logger.debug(f"POST: {json.dumps(data)}")
         if self._dry:
-            response = SimpleNamespace(text="DRY RESPONSE")
+            response = SimpleNamespace(
+                text="DRY RESPONSE",
+                json={"message": "ingested", "cidV1": "cid123"}
+            )
         else:
             response = requests.post(
                 self._api_endpoint, json=data, headers=headers)
         logger.debug(f"Received response: {response.text}")
+
+        if response.json.get("message") == "ingested":
+            return response.json.get("cidV1")
+        else:
+            logger.warn("Unexpected message in response: "
+                        f"'{response.json.get("message")}'.")
 
     def _get_cid(self, public_metadata: str) -> str:
         json_string = json.dumps(

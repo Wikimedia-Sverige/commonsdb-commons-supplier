@@ -47,6 +47,10 @@ def process_file(
         logger.info(
             f"Page id is the same as for declaration with id {declaration.id}."
         )
+        if declaration.ingested_cid is not None:
+            logger.info("Skipping declaration with ingested cid: "
+                        f"{declaration.ingested_cid}")
+            return
     else:
         tags = set(args.tag)
         tags.add(batch_name)
@@ -109,7 +113,9 @@ def process_file(
     logger.info("Getting license.")
     license_url = metadata_collector.get_license()
     logger.info("Making declaration.")
-    api_connector.request_declaration(name, iscc, location, license_url)
+    cid = api_connector.request_declaration(name, iscc, location, license_url)
+    if cid is not None:
+        journal.update_declaration(declaration, ingested_cid=cid)
     logger.info(f"Done with '{commons_filename}'.")
 
 
@@ -147,6 +153,7 @@ if __name__ == "__main__":
     declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
 
     declaration_journal = create_journal(declaration_journal_url)
+    site = Site("commons")
     if os.path.exists(args.files):
         with open(args.files) as f:
             files = [g.strip() for g in f]
@@ -154,7 +161,6 @@ if __name__ == "__main__":
     else:
         files_tag = args.files
         declarations = declaration_journal.get_declarations(files_tag)
-        site = Site("commons")
         files = [f.title() for f in site.load_pages_from_pageids(
             [d.page_id for d in declarations])]
         batch_name = args.files
