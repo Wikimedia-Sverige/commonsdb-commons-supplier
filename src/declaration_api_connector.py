@@ -101,11 +101,12 @@ class DeclarationApiConnector:
                 self._api_endpoint, json=data, headers=headers)
         logger.debug(f"Received response: {response.text}")
 
-        if response.json.get("message") == "ingested":
-            return response.json.get("cidV1")
+        response_content = response.json()
+        message = response_content.get("message")
+        if message == "ingested":
+            return response_content.get("cidV1")
         else:
-            logger.warn("Unexpected message in response: "
-                        f"'{response.json.get("message")}'.")
+            logger.warn(f"Unexpected message in response: '{message}'.")
 
     def _get_cid(self, public_metadata: str) -> str:
         json_string = json.dumps(
