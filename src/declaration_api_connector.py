@@ -3,7 +3,7 @@ import hashlib
 import json
 import logging
 import subprocess
-import time
+from time import sleep, time
 from types import SimpleNamespace
 
 import jwt
@@ -21,7 +21,8 @@ class DeclarationApiConnector:
         api_endpoint: str,
         api_key: str,
         member_credentials_path: str,
-        private_key_path: str
+        private_key_path: str,
+        rate_limit: float = 0
     ):
         self._dry = dry
         self._member_credentials = (self._read_json(member_credentials_path)
@@ -29,6 +30,9 @@ class DeclarationApiConnector:
         self._private_key = self._read_text(private_key_path)
         self._api_endpoint = api_endpoint
         self._api_key = api_key
+        self._rate_limit = rate_limit
+
+        self._last_request_time = None
 
     def _read_json(self, path: str) -> dict:
         try:
@@ -50,9 +54,9 @@ class DeclarationApiConnector:
         iscc: str,
         location: str,
         rights_statement: str
-    ):
+    ) -> str:
         # Epoch time in milliseconds.
-        timestamp = int(time.time() * 1000)
+        timestamp = int(time() * 1000)
         public_metadata = {
             "iscc": iscc,
             "name": name,
@@ -91,12 +95,32 @@ class DeclarationApiConnector:
         }
         logger.info(f"Sending request to '{self._api_endpoint}'.")
         logger.debug(f"POST: {json.dumps(data)}")
+        if self._rate_limit and self._last_request_time:
+            time_since_last = time() - self._last_request_time
+            if time_since_last < self._rate_limit:
+                wait_time = self._rate_limit - time_since_last
+                logger.debug(
+                    f"Waiting {wait_time} seconds for rate limit.")
+                sleep(wait_time)
+        self._last_request_time = time()
         if self._dry:
-            response = SimpleNamespace(text="DRY RESPONSE")
+            def dry_json():
+                return {"message": "ingested", "cidV1": "cid123"}
+            response = SimpleNamespace(
+                text="DRY RESPONSE",
+                json=dry_json
+            )
         else:
             response = requests.post(
                 self._api_endpoint, json=data, headers=headers)
         logger.debug(f"Received response: {response.text}")
+
+        response_content = response.json()
+        message = response_content.get("message")
+        if message == "ingested":
+            return response_content.get("cidV1")
+        else:
+            logger.warn(f"Unexpected message in response: '{message}'.")
 
     def _get_cid(self, public_metadata: str) -> str:
         json_string = json.dumps(

@@ -5,7 +5,7 @@ import os
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
-from time import sleep, time
+from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
@@ -24,29 +24,25 @@ def process_file(
     args: Namespace,
     api_endpoint: str,
     api_key: str,
-    member_credentials_path: str,
-    private_key_path: str,
     journal: DeclarationJournal,
+    api_connector: DeclarationApiConnector,
     site: Site,
     batch_name: str
-):
+) -> bool:
     logger.info(f"Processing '{commons_filename}'.")
 
     page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
-    api_connector = DeclarationApiConnector(
-        args.dry,
-        api_endpoint,
-        api_key,
-        member_credentials_path,
-        private_key_path
-    )
 
     declaration = journal.get_page_id_match(page.pageid)
     if declaration is not None:
         logger.info(
             f"Page id is the same as for declaration with id {declaration.id}."
         )
+        if declaration.ingested_cid is not None:
+            logger.info("Skipping declaration with ingested cid: "
+                        f"{declaration.ingested_cid}")
+            return False
     else:
         tags = set(args.tag)
         tags.add(batch_name)
@@ -100,7 +96,7 @@ def process_file(
         iscc = declaration.iscc
 
     if args.iscc:
-        return
+        return False
 
     logger.info("Getting location.")
     location = metadata_collector.get_url()
@@ -109,8 +105,11 @@ def process_file(
     logger.info("Getting license.")
     license_url = metadata_collector.get_license()
     logger.info("Making declaration.")
-    api_connector.request_declaration(name, iscc, location, license_url)
+    cid = api_connector.request_declaration(name, iscc, location, license_url)
+    if cid is not None:
+        journal.update_declaration(declaration, ingested_cid=cid)
     logger.info(f"Done with '{commons_filename}'.")
+    return True
 
 
 def get_os_env(name) -> str:
@@ -129,6 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--quit-on-error", "-q", action="store_true")
     parser.add_argument("--tag", "-t", action="append", default=[])
     parser.add_argument("--rate-limit", "-r", type=float)
+    parser.add_argument("--limit", "-l", type=int)
     parser.add_argument("files")
     args = parser.parse_args()
 
@@ -142,11 +142,12 @@ if __name__ == "__main__":
     load_dotenv()
     api_endpoint = get_os_env("API_ENDPOINT")
     api_key = get_os_env("API_KEY")
-    member_credentials_file = get_os_env("MEMBER_CREDENTIALS_FILE")
-    private_key_file = get_os_env("PRIVATE_KEY_FILE")
+    member_credentials_path = get_os_env("MEMBER_CREDENTIALS_FILE")
+    private_key_path = get_os_env("PRIVATE_KEY_FILE")
     declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
 
     declaration_journal = create_journal(declaration_journal_url)
+    site = Site("commons")
     if os.path.exists(args.files):
         with open(args.files) as f:
             files = [g.strip() for g in f]
@@ -154,31 +155,44 @@ if __name__ == "__main__":
     else:
         files_tag = args.files
         declarations = declaration_journal.get_declarations(files_tag)
-        site = Site("commons")
         files = [f.title() for f in site.load_pages_from_pageids(
             [d.page_id for d in declarations])]
         batch_name = args.files
 
     start_total_time = time()
     error_files = []
+    files_added = 0
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"START: {timestamp}")
+    api_connector = DeclarationApiConnector(
+        args.dry,
+        api_endpoint,
+        api_key,
+        member_credentials_path,
+        private_key_path,
+        args.rate_limit
+    )
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
-        print(f"{i + 1}/{len(files)}: {f}")
+        progress = f"{i + 1}/{len(files)}"
+        if args.limit:
+            progress += f" [{files_added + 1}/{args.limit}]"
+        progress += f": {f}"
+        print(progress)
         start_time = time()
         try:
-            process_file(
+            added_to_registry = process_file(
                 f,
                 args,
                 api_endpoint,
                 api_key,
-                member_credentials_file,
-                private_key_file,
                 declaration_journal,
+                api_connector,
                 site,
                 batch_name
             )
+            if added_to_registry:
+                files_added += 1
         except Exception:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")
@@ -188,12 +202,9 @@ if __name__ == "__main__":
         finally:
             process_time = time() - start_time
             print(f"File time: {process_time:.0f}")
-            if args.rate_limit is not None:
-                wait_time = args.rate_limit - process_time
-                if wait_time > 0:
-                    logger.debug(
-                        f"Waiting {wait_time} seconds for rate limit.")
-                    sleep(wait_time)
+            if args.limit and files_added == args.limit:
+                print(f"Hit limit for declarations made: {args.limit}.")
+                break
 
     print(f"Total time: {time() - start_total_time:.0f}")
     if error_files:
