@@ -29,7 +29,7 @@ def process_file(
     journal: DeclarationJournal,
     site: Site,
     batch_name: str
-):
+) -> bool:
     logger.info(f"Processing '{commons_filename}'.")
 
     page = FilePage(site, commons_filename)
@@ -50,7 +50,7 @@ def process_file(
         if declaration.ingested_cid is not None:
             logger.info("Skipping declaration with ingested cid: "
                         f"{declaration.ingested_cid}")
-            return
+            return False
     else:
         tags = set(args.tag)
         tags.add(batch_name)
@@ -104,7 +104,7 @@ def process_file(
         iscc = declaration.iscc
 
     if args.iscc:
-        return
+        return False
 
     logger.info("Getting location.")
     location = metadata_collector.get_url()
@@ -117,6 +117,7 @@ def process_file(
     if cid is not None:
         journal.update_declaration(declaration, ingested_cid=cid)
     logger.info(f"Done with '{commons_filename}'.")
+    return True
 
 
 def get_os_env(name) -> str:
@@ -135,6 +136,7 @@ if __name__ == "__main__":
     parser.add_argument("--quit-on-error", "-q", action="store_true")
     parser.add_argument("--tag", "-t", action="append", default=[])
     parser.add_argument("--rate-limit", "-r", type=float)
+    parser.add_argument("--limit", "-l", type=int)
     parser.add_argument("files")
     args = parser.parse_args()
 
@@ -167,14 +169,19 @@ if __name__ == "__main__":
 
     start_total_time = time()
     error_files = []
+    files_added = 0
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"START: {timestamp}")
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
-        print(f"{i + 1}/{len(files)}: {f}")
+        progress = f"{i + 1}/{len(files)}"
+        if args.limit:
+            progress += f" [{files_added + 1}/{args.limit}]"
+        progress += f": {f}"
+        print(progress)
         start_time = time()
         try:
-            process_file(
+            added_to_registry = process_file(
                 f,
                 args,
                 api_endpoint,
@@ -185,6 +192,8 @@ if __name__ == "__main__":
                 site,
                 batch_name
             )
+            if added_to_registry:
+                files_added += 1
         except Exception:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")
@@ -200,6 +209,9 @@ if __name__ == "__main__":
                     logger.debug(
                         f"Waiting {wait_time} seconds for rate limit.")
                     sleep(wait_time)
+            if args.limit and files_added == args.limit:
+                print(f"Hit limit for declarations made: {args.limit}.")
+                break
 
     print(f"Total time: {time() - start_total_time:.0f}")
     if error_files:
