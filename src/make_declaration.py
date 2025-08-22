@@ -24,9 +24,8 @@ def process_file(
     args: Namespace,
     api_endpoint: str,
     api_key: str,
-    member_credentials_path: str,
-    private_key_path: str,
     journal: DeclarationJournal,
+    api_connector: DeclarationApiConnector,
     site: Site,
     batch_name: str
 ) -> bool:
@@ -34,13 +33,6 @@ def process_file(
 
     page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
-    api_connector = DeclarationApiConnector(
-        args.dry,
-        api_endpoint,
-        api_key,
-        member_credentials_path,
-        private_key_path
-    )
 
     declaration = journal.get_page_id_match(page.pageid)
     if declaration is not None:
@@ -150,8 +142,8 @@ if __name__ == "__main__":
     load_dotenv()
     api_endpoint = get_os_env("API_ENDPOINT")
     api_key = get_os_env("API_KEY")
-    member_credentials_file = get_os_env("MEMBER_CREDENTIALS_FILE")
-    private_key_file = get_os_env("PRIVATE_KEY_FILE")
+    member_credentials_path = get_os_env("MEMBER_CREDENTIALS_FILE")
+    private_key_path = get_os_env("PRIVATE_KEY_FILE")
     declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
 
     declaration_journal = create_journal(declaration_journal_url)
@@ -172,6 +164,14 @@ if __name__ == "__main__":
     files_added = 0
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"START: {timestamp}")
+    api_connector = DeclarationApiConnector(
+        args.dry,
+        api_endpoint,
+        api_key,
+        member_credentials_path,
+        private_key_path,
+        args.rate_limit
+    )
     print(f"Processing {len(files)} files.")
     for i, f in enumerate(files):
         progress = f"{i + 1}/{len(files)}"
@@ -186,9 +186,8 @@ if __name__ == "__main__":
                 args,
                 api_endpoint,
                 api_key,
-                member_credentials_file,
-                private_key_file,
                 declaration_journal,
+                api_connector,
                 site,
                 batch_name
             )
@@ -203,12 +202,6 @@ if __name__ == "__main__":
         finally:
             process_time = time() - start_time
             print(f"File time: {process_time:.0f}")
-            if args.rate_limit is not None:
-                wait_time = args.rate_limit - process_time
-                if wait_time > 0:
-                    logger.debug(
-                        f"Waiting {wait_time} seconds for rate limit.")
-                    sleep(wait_time)
             if args.limit and files_added == args.limit:
                 print(f"Hit limit for declarations made: {args.limit}.")
                 break
