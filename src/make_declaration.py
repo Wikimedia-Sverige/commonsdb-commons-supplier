@@ -9,6 +9,7 @@ from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
+from sqlalchemy.exc import PendingRollbackError
 
 from declaration_api_connector import DeclarationApiConnector
 from declaration_journal import DeclarationJournal, create_journal
@@ -193,20 +194,30 @@ if __name__ == "__main__":
             )
             if added_to_registry:
                 files_added += 1
-        except Exception:
+        except Exception as e:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")
             error_files.append(f)
+
+            if type(e) is PendingRollbackError:
+                # Once this exception occurs all attempts to read from the
+                # database fail.
+                # TODO: Figure out how to handle these errors if possible.
+                logger.exception(
+                    "Don't know how to handle this error. Stopping run.")
+                break
+
             if args.quit_on_error:
                 break
+
         finally:
             process_time = time() - start_time
-            print(f"File time: {process_time:.0f}")
+            print(f"File time: {process_time:.2f}")
             if args.limit and files_added == args.limit:
                 print(f"Hit limit for declarations made: {args.limit}.")
                 break
 
-    print(f"Total time: {time() - start_total_time:.0f}")
+    print(f"Total time: {time() - start_total_time:.2f}")
     if error_files:
         print("Some requests failed. See log for details:")
         print("\n".join(error_files))
