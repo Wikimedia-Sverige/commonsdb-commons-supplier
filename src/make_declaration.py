@@ -150,11 +150,14 @@ if __name__ == "__main__":
     declaration_journal = create_journal(declaration_journal_url)
     site = Site("commons")
     if os.path.exists(args.files):
-        with open(args.files) as f:
+        list_file = args.files
+        logger.info(f"Reading file list from file: '{list_file}'.")
+        with open(list_file) as f:
             files = [g.strip() for g in f]
-        batch_name = f"batch:{Path(args.files).stem}"
+        batch_name = f"batch:{Path(list_file).stem}"
     else:
         files_tag = args.files
+        logger.info(f"Reading file list from journal tag: '{files_tag}'.")
         declarations = declaration_journal.get_declarations(files_tag)
         files = [f.title() for f in site.load_pages_from_pageids(
             [d.page_id for d in declarations])]
