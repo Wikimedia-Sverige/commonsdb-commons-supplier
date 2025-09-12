@@ -155,13 +155,15 @@ if __name__ == "__main__":
         with open(list_file) as f:
             files = [g.strip() for g in f]
         batch_name = f"batch:{Path(list_file).stem}"
-    else:
+    elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
         declarations = declaration_journal.get_declarations(files_tag)
         files = [f.title() for f in site.load_pages_from_pageids(
             [d.page_id for d in declarations])]
         batch_name = args.files
+    else:
+        raise Exception("No valid list file or tag specified.")
 
     start_total_time = time()
     error_files = []

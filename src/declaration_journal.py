@@ -139,8 +139,14 @@ class DeclarationJournal:
 
         return declaration
 
+    def tag_exists(self, name: str) -> bool:
+        statement = select(Tag).where(Tag.label == name)
+        tag = self._session.scalars(statement).one_or_none()
 
-def create_journal(database_url: str):
+        return tag is not None
+
+
+def create_journal(database_url: str) -> DeclarationJournal:
     engine = create_engine(database_url)
     with Session(engine, expire_on_commit=False) as session, session.begin():
         journal = DeclarationJournal(engine, session)

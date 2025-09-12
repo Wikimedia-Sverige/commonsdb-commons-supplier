@@ -88,3 +88,10 @@ class DeclarationJournalTestCase(TestCase):
         match = self._declaration_journal.get_page_id_match(234)
 
         assert match is None
+
+    def test_tag_exists(self):
+        tag = Tag(label="tag-1")
+        self._declaration_journal._session.add(tag)
+
+        assert self._declaration_journal.tag_exists("tag-1") is True
+        assert self._declaration_journal.tag_exists("tag-2") is False
