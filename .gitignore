@@ -27,3 +27,6 @@ venv.bak/
 apicache-py3/
 pywikibot.lwp
 throttle.ctrl
+
+## Pyright
+typings/

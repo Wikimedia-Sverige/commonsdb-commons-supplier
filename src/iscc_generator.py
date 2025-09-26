@@ -14,6 +14,9 @@ class IsccGenerator:
         logger.info(f"Generating ISCC from image: '{self._image_path}'.")
         iscc_meta = iscc_sdk.code_iscc(self._image_path)
         logger.debug("ISCC generation done.")
+        if iscc_meta.iscc is None:
+            raise Exception("ISCC generation failed.")
+
         return iscc_meta.iscc
 
 
@@ -24,5 +27,5 @@ if __name__ == "__main__":
         style="{"
     )
 
-    generator = IsccGenerator()
-    print(generator.generate(sys.argv[1]))
+    generator = IsccGenerator(sys.argv[1])
+    print(generator.generate())

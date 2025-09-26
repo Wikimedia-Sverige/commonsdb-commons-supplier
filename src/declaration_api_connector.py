@@ -54,7 +54,10 @@ class DeclarationApiConnector:
         iscc: str,
         location: str,
         rights_statement: str
-    ) -> str:
+    ) -> str | None:
+        if self._member_credentials is None:
+            raise Exception("Invalid memeber credentials.")
+
         # Epoch time in milliseconds.
         timestamp = int(time() * 1000)
         public_metadata = {
@@ -120,7 +123,7 @@ class DeclarationApiConnector:
         if message == "ingested":
             return response_content.get("cidV1")
         else:
-            logger.warn(f"Unexpected message in response: '{message}'.")
+            logger.warning(f"Unexpected message in response: '{message}'.")
 
     def _get_cid(self, public_metadata: str) -> str:
         json_string = json.dumps(
@@ -134,18 +137,7 @@ class DeclarationApiConnector:
         cid = b"".join([prefix, mh])
         return b58encode(cid).decode()
 
-    def _get_declaration_id(self, public_metadata: str, cid: str) -> str:
-        cid_hash = hashlib.sha256(cid.encode()).digest()
-
-        ids = b"".join([
-            bytes.fromhex(public_metadata.get("declarationIdVersion")),
-            bytes.fromhex(public_metadata.get("regId")),
-            cid_hash
-        ])
-        declaration_id = b58encode(ids)[:20].lower()
-        return declaration_id.decode()
-
-    def _get_signature(self, data: str) -> str:
+    def _get_signature(self, data: dict) -> str:
         signature = jwt.encode(
             data,
             self._private_key,

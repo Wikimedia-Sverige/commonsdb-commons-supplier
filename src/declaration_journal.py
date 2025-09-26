@@ -1,7 +1,7 @@
 import inspect
 import logging
 from datetime import datetime
-from typing import List, Optional, Set
+from typing import Optional, Set
 
 import alembic
 from alembic.config import Config
@@ -80,7 +80,7 @@ class DeclarationJournal:
             alembic_cfg = Config("alembic.ini")
             alembic.command.upgrade(alembic_cfg, "head")
 
-    def add_declaration(self, tag_labels: List[str], **kwargs) -> Declaration:
+    def add_declaration(self, tag_labels: Set[str], **kwargs) -> Declaration:
         tags = set()
         for label in tag_labels:
             statement = select(Tag).where(Tag.label == label)
@@ -115,7 +115,7 @@ class DeclarationJournal:
         declaration.updated_timestamp = datetime.now()
         self._session.commit()
 
-    def get_declarations(self, tag: str = None) -> list[Declaration]:
+    def get_declarations(self, tag: str | None = None) -> list[Declaration]:
         statement = select(Declaration)
         if tag is not None:
             statement = statement.join(Declaration.tags.and_(Tag.label == tag))
@@ -123,7 +123,7 @@ class DeclarationJournal:
         declarations = self._session.scalars(statement).all()
         return declarations
 
-    def get_page_id_match(self, page_id: int) -> Declaration:
+    def get_page_id_match(self, page_id: int) -> Declaration | None:
         statement = select(Declaration).where(Declaration.page_id == page_id)
         declaration = self._session.scalars(statement).one_or_none()
         if declaration is None:
@@ -131,7 +131,7 @@ class DeclarationJournal:
 
         return declaration
 
-    def get_image_hash_match(self, hash: str) -> Declaration:
+    def get_image_hash_match(self, hash: str) -> Declaration | None:
         statement = select(Declaration).where(Declaration.image_hash == hash)
         declaration = self._session.scalars(statement).one_or_none()
         if declaration is None:

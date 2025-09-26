@@ -9,6 +9,7 @@ from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
+from pywikibot.site._basesite import BaseSite
 from sqlalchemy.exc import PendingRollbackError
 
 from declaration_api_connector import DeclarationApiConnector
@@ -23,11 +24,9 @@ logger = logging.getLogger(__name__)
 def process_file(
     commons_filename: str,
     args: Namespace,
-    api_endpoint: str,
-    api_key: str,
     journal: DeclarationJournal,
     api_connector: DeclarationApiConnector,
-    site: Site,
+    site: BaseSite,
     batch_name: str
 ) -> bool:
     logger.info(f"Processing '{commons_filename}'.")
@@ -60,7 +59,8 @@ def process_file(
             page.latest_file_info.sha1
         )
         if (matching_declaration is not None
-                and matching_declaration != declaration):
+                and matching_declaration != declaration
+                and matching_declaration.iscc is not None):
             # The same image hash should result in the same ISCC. Just use the
             # one we already have instead of generating it again.
             logger.info(
@@ -71,6 +71,7 @@ def process_file(
                 declaration,
                 iscc=matching_declaration.iscc
             )
+            iscc = matching_declaration.iscc
         else:
             # Download file and generate ISCC.
             download_start_time = time()
@@ -97,6 +98,7 @@ def process_file(
         iscc = declaration.iscc
 
     if args.iscc:
+        # Only generate ISCC.
         return False
 
     logger.info("Getting location.")
@@ -190,8 +192,6 @@ if __name__ == "__main__":
             added_to_registry = process_file(
                 f,
                 args,
-                api_endpoint,
-                api_key,
                 declaration_journal,
                 api_connector,
                 site,

@@ -1,10 +1,10 @@
 from pywikibot import FilePage
 from pywikibot.data.api import Request
-from pywikibot.site import APISite
+from pywikibot.site._basesite import BaseSite
 
 
 class MetadataCollector:
-    def __init__(self, site: APISite, page: FilePage):
+    def __init__(self, site: BaseSite, page: FilePage):
         self._site = site
         self._page = page
 
@@ -21,7 +21,7 @@ class MetadataCollector:
                 or self._get_name_from_label()
                 or self._get_name_from_filename())
 
-    def _get_name_from_label(self) -> str:
+    def _get_name_from_label(self) -> str | None:
         entity = self._get_digital_representation()
         if entity is None:
             return None
@@ -30,7 +30,7 @@ class MetadataCollector:
         label = labels.get("en", {}).get("value")
         return label
 
-    def _get_digital_representation(self) -> dict:
+    def _get_digital_representation(self) -> dict | None:
         sdc = self._get_sdc()
         if sdc is None:
             return None
@@ -43,7 +43,7 @@ class MetadataCollector:
         item = self._get_entity(digital_representation.get("id"))
         return item
 
-    def _get_name_from_title(self) -> str:
+    def _get_name_from_title(self) -> str | None:
         entity = self._get_digital_representation()
         if entity is None:
             return None
@@ -83,14 +83,14 @@ class MetadataCollector:
             raise MissingMetadataError("Couldn't get license.")
         return license
 
-    def _get_license_for_image(self) -> str:
+    def _get_license_for_image(self) -> str | None:
         sdc = self._get_sdc()
         if sdc is None:
             return None
 
         return self._get_license_for_item(sdc)
 
-    def _get_license_for_item(self, item) -> str:
+    def _get_license_for_item(self, item) -> str | None:
         # P6216 = "copyright status"
         copyright_status = self._get_property(item, "P6216")
         if copyright_status is not None:
@@ -110,7 +110,7 @@ class MetadataCollector:
 
         return license_url
 
-    def _get_license_for_depicted(self) -> str:
+    def _get_license_for_depicted(self) -> str | None:
         depicted = self._get_digital_representation()
         if depicted is None:
             return None
