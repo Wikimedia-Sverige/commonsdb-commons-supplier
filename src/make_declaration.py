@@ -17,6 +17,7 @@ from declaration_journal import DeclarationJournal, create_journal
 from file_fetcher import FileFetcher
 from iscc_generator import IsccGenerator
 from metadata_collector import MetadataCollector
+from thumbnail_generator import ThumbnailGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ def process_file(
             image_hash=page.latest_file_info.sha1
         )
 
+    thumbnail = None
     if declaration.iscc is None:
         # Add ISCC.
         matching_declaration = journal.get_image_hash_match(
@@ -85,6 +87,9 @@ def process_file(
             iscc = iscc_generator.generate()
             iscc_time = time() - iscc_start_time
 
+            thumbnail_generator = ThumbnailGenerator(path)
+            thumbnail = thumbnail_generator.generate()
+
             journal.update_declaration(
                 declaration,
                 file_size=file_size,
@@ -107,8 +112,19 @@ def process_file(
     name = metadata_collector.get_name()
     logger.info("Getting license.")
     license_url = metadata_collector.get_license()
+
+    extra_public_metadata = {}
+    if thumbnail is not None:
+        extra_public_metadata["thumbnail"] = thumbnail
+
     logger.info("Making declaration.")
-    cid = api_connector.request_declaration(name, iscc, location, license_url)
+    cid = api_connector.request_declaration(
+        name,
+        iscc,
+        location,
+        license_url,
+        extra_public_metadata
+    )
     if cid is not None:
         journal.update_declaration(declaration, ingested_cid=cid)
     logger.info(f"Done with '{commons_filename}'.")

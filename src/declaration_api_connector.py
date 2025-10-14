@@ -53,7 +53,8 @@ class DeclarationApiConnector:
         name: str,
         iscc: str,
         location: str,
-        rights_statement: str
+        rights_statement: str,
+        extra_public_metadata: dict
     ) -> str | None:
         if self._member_credentials is None:
             raise Exception("Invalid memeber credentials.")
@@ -72,6 +73,7 @@ class DeclarationApiConnector:
                 "rightsStatement": rights_statement,
             }
         }
+        public_metadata.update(extra_public_metadata)
         proof = self._member_credentials.get("proof").get("jwt")
         commons_db_metadata = {
             "location": location,
