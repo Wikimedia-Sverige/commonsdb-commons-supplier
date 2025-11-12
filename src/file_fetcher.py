@@ -9,14 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class FileFetcher:
-    def __init__(self):
-        # Create the temporary directory here to make sure it stays around
-        # for as long as it's needed.
-        self._storage = TemporaryDirectory()
-
-    def fetch_file(self, page: FilePage) -> tuple[str, int, int, int]:
+    def fetch_file(self, directory: str, page: FilePage) -> tuple[str, int, int, int]:
         filename = page.title(with_ns=False)
-        path = f"{self._storage.name}/{filename}"
+        path = f"{directory}/{filename}"
         logger.info(f"Downloading file: '{filename}'")
         success = page.download(path, url_width=330)
         if not success:

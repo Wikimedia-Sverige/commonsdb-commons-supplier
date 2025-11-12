@@ -108,9 +108,13 @@ class DeclarationApiConnector:
                     f"Waiting {wait_time} seconds for rate limit.")
                 sleep(wait_time)
         self._last_request_time = time()
+        old_cid = public_metadata.get("supersedes")
         if self._dry:
             def dry_json():
-                return {"message": "ingested", "cidV1": "cid123"}
+                if old_cid:
+                    return {"message": "ingested", "cidV1": "cid456"}
+                else:
+                    return {"message": "ingested", "cidV1": "cid123"}
             response = SimpleNamespace(
                 text="DRY RESPONSE",
                 json=dry_json
@@ -123,7 +127,12 @@ class DeclarationApiConnector:
         response_content = response.json()
         message = response_content.get("message")
         if message == "ingested":
-            return response_content.get("cidV1")
+            new_cid = response_content.get("cidV1")
+            if old_cid:
+                logger.info(f"Update declaration CID(old): {new_cid}({old_cid})")
+            else:
+                logger.info(f"New declaration CID: {new_cid}")
+            return new_cid
         else:
             logger.warning(f"Unexpected message in response: '{message}'.")
 

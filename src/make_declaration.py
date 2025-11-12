@@ -5,6 +5,7 @@ import os
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from time import time
 
 from dotenv import load_dotenv
@@ -22,6 +23,140 @@ from thumbnail_generator import ThumbnailGenerator
 logger = logging.getLogger(__name__)
 
 
+class File:
+    def __init__(
+        self,
+        journal: DeclarationJournal,
+        page: FilePage,
+        metadata_collector: MetadataCollector,
+        api_connector: DeclarationApiConnector
+    ):
+        self._journal = journal
+        self._page = page
+        self._metadata_collector = metadata_collector
+        self._api_connector = api_connector
+
+        self._extra_public_metadata = {}
+        self._declaration = self._journal.get_page_id_match(self._page.pageid)
+        self._iscc: str | None = None
+        self._file_size: int | None = None
+        self._file_width: int | None = None
+        self._file_height: int | None = None
+        self._download_time: float | None = None
+
+        self._storage = TemporaryDirectory()
+        self._path: str | None = None
+
+    def is_in_journal(self) -> bool:
+        return self._declaration is not None
+
+    def is_in_registry(self) -> bool:
+        return self._declaration is not None \
+            and self._declaration.ingested_cid is not None
+
+    def create(self, tags: set[str]):
+        self._download_file()
+        iscc_time = self._generate_iscc()
+        self._generate_tumbnail()
+
+        self._declaration = self._journal.add_declaration(
+            tags,
+            page_id=self._page.pageid,
+            revision_id=self._page.latest_revision_id,
+            image_hash=self._page.latest_file_info.sha1,
+            file_size=self._file_size,
+            width=self._file_width,
+            height=self._file_height,
+            download_time=self._download_time,
+            iscc=self._iscc,
+            iscc_time=iscc_time
+        )
+
+    def _download_file(self):
+        download_start_time = time()
+        file_fetcher = FileFetcher()
+        (
+            self._path,
+            self._file_size,
+            self._file_width,
+            self._file_height
+        ) = file_fetcher.fetch_file(self._storage.name, self._page)
+        self._download_time = time() - download_start_time
+
+    def _generate_iscc(self) -> float:
+        if self._path is None:
+            raise Exception("File path required.")
+
+        iscc_start_time = time()
+        iscc_generator = IsccGenerator(self._path)
+        self._iscc = iscc_generator.generate()
+        iscc_time = time() - iscc_start_time
+
+        return iscc_time
+
+    def _generate_tumbnail(self):
+        if self._path is None:
+            raise Exception("File path required.")
+
+        thumbnail_generator = ThumbnailGenerator(self._path)
+        thumbnail = thumbnail_generator.generate()
+        if thumbnail is not None:
+            self._extra_public_metadata["thumbnail"] = thumbnail
+
+    def update(self):
+        if self._declaration is None:
+            raise Exception("Declaration reqiured.")
+
+        args = {
+            "page_id": self._page.pageid,
+            "revision_id": self._page.latest_revision_id,
+            "image_hash": self._page.latest_file_info.sha1
+        }
+
+        self._download_file()
+        self._generate_tumbnail()
+        if self._declaration.iscc is None:
+            iscc_time = self._generate_iscc()
+            args.update({
+                "file_size": self._file_size,
+                "width": self._file_width,
+                "height": self._file_height,
+                "download_time": self._download_time,
+                "iscc": self._iscc,
+                "iscc_time": iscc_time
+            })
+
+        self._journal.update_declaration(self._declaration, **args)
+
+    def make_request(self) -> bool:
+        if self._declaration is None:
+            raise Exception("Declaration reqiured.")
+
+        if self._declaration.iscc is None:
+            raise Exception("ISCC reqiured.")
+
+        logger.info("Getting location.")
+        location = self._metadata_collector.get_url()
+        logger.info("Getting name.")
+        name = self._metadata_collector.get_name()
+        logger.info("Getting license.")
+        license_url = self._metadata_collector.get_license()
+        if self._declaration.ingested_cid is not None:
+            self._extra_public_metadata["supersedes"] = self._declaration.ingested_cid
+        cid = self._api_connector.request_declaration(
+            name,
+            self._declaration.iscc,
+            location,
+            license_url,
+            self._extra_public_metadata
+        )
+        if cid is None:
+            return False
+
+        self._journal.update_declaration(self._declaration, ingested_cid=cid)
+        return True
+
+
 def process_file(
     commons_filename: str,
     args: Namespace,
@@ -35,100 +170,22 @@ def process_file(
     page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
 
-    declaration = journal.get_page_id_match(page.pageid)
-    if declaration is not None:
-        logger.info(
-            f"Page id is the same as for declaration with id {declaration.id}."
-        )
-        if declaration.ingested_cid is not None:
-            logger.info("Skipping declaration with ingested cid: "
-                        f"{declaration.ingested_cid}")
+    file = File(journal, page, metadata_collector, api_connector)
+    tags = set(args.tag)
+    tags.add(batch_name)
+    if not file.is_in_journal():
+        file.create(tags)
+    else:
+        if file.is_in_registry() and not args.update:
+            logger.info("Skiping file already in registry.")
             return False
-    else:
-        tags = set(args.tag)
-        tags.add(batch_name)
-        declaration = journal.add_declaration(
-            tags,
-            page_id=page.pageid,
-            revision_id=page.latest_revision_id,
-            image_hash=page.latest_file_info.sha1
-        )
 
-    thumbnail = None
-    if declaration.iscc is None:
-        # Add ISCC.
-        matching_declaration = journal.get_image_hash_match(
-            page.latest_file_info.sha1
-        )
-        if (matching_declaration is not None
-                and matching_declaration != declaration
-                and matching_declaration.iscc is not None):
-            # The same image hash should result in the same ISCC. Just use the
-            # one we already have instead of generating it again.
-            logger.info(
-                f"Image hash is the same as for id {matching_declaration.id}. "
-                "Using the same ISCC instead of generating."
-            )
-            journal.update_declaration(
-                declaration,
-                iscc=matching_declaration.iscc
-            )
-            iscc = matching_declaration.iscc
-        else:
-            # Download file and generate ISCC.
-            download_start_time = time()
-            file_fetcher = FileFetcher()
-            path, file_size, width, height = file_fetcher.fetch_file(page)
-            download_time = time() - download_start_time
-
-            iscc_start_time = time()
-            iscc_generator = IsccGenerator(path)
-            logger.info("Generating ISCC.")
-            iscc = iscc_generator.generate()
-            iscc_time = time() - iscc_start_time
-
-            thumbnail_generator = ThumbnailGenerator(path)
-            thumbnail = thumbnail_generator.generate()
-
-            journal.update_declaration(
-                declaration,
-                file_size=file_size,
-                width=width,
-                height=height,
-                download_time=download_time,
-                iscc=iscc,
-                iscc_time=iscc_time
-            )
-    else:
-        iscc = declaration.iscc
+        file.update()
 
     if args.iscc:
-        # Only generate ISCC.
         return False
 
-    logger.info("Getting location.")
-    location = metadata_collector.get_url()
-    logger.info("Getting name.")
-    name = metadata_collector.get_name()
-    logger.info("Getting license.")
-    license_url = metadata_collector.get_license()
-
-    extra_public_metadata = {}
-    if thumbnail is not None:
-        extra_public_metadata["thumbnail"] = thumbnail
-
-    logger.info("Making declaration.")
-    cid = api_connector.request_declaration(
-        name,
-        iscc,
-        location,
-        license_url,
-        extra_public_metadata
-    )
-    if cid is not None:
-        journal.update_declaration(declaration, ingested_cid=cid)
-    logger.info(f"Done with '{commons_filename}'.")
-    return True
+    return file.make_request()
 
 
 def get_os_env(name) -> str:
@@ -148,6 +205,7 @@ if __name__ == "__main__":
     parser.add_argument("--tag", "-t", action="append", default=[])
     parser.add_argument("--rate-limit", "-r", type=float)
     parser.add_argument("--limit", "-l", type=int)
+    parser.add_argument("--update", "-u", action="store_true")
     parser.add_argument("files")
     args = parser.parse_args()
 

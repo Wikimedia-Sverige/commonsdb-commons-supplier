@@ -101,7 +101,7 @@ class DeclarationJournal:
         self._session.commit()
         return declaration
 
-    def update_declaration(self, declaration: Declaration, **kwargs):
+    def update_declaration(self, declaration: Declaration | None, **kwargs):
         if declaration is None:
             return
 
