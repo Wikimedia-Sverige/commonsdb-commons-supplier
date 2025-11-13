@@ -1,6 +1,9 @@
+import json
 from pywikibot import FilePage
 from pywikibot.data.api import Request
 from pywikibot.site._basesite import BaseSite
+
+import valid_licenses
 
 
 class MetadataCollector:
@@ -37,10 +40,10 @@ class MetadataCollector:
 
         # P6243 = "digital representation of"
         digital_representation = self._get_property(sdc, "P6243")
-        if digital_representation is None:
+        if not digital_representation:
             return None
 
-        item = self._get_entity(digital_representation.get("id"))
+        item = self._get_entity(digital_representation[0].get("id"))
         return item
 
     def _get_name_from_title(self) -> str | None:
@@ -50,10 +53,10 @@ class MetadataCollector:
 
         # P1476 = "title"
         title = self._get_property(entity, "P1476")
-        if title is None:
+        if not title:
             return None
 
-        return title.get("text")
+        return title[0].get("text")
 
     def _get_name_from_filename(self) -> str:
         filename = self._page.title(with_ns=False)
@@ -88,13 +91,14 @@ class MetadataCollector:
         if sdc is None:
             return None
 
+        print(json.dumps(sdc))
         return self._get_license_for_item(sdc)
 
     def _get_license_for_item(self, item) -> str | None:
         # P6216 = "copyright status"
         copyright_status = self._get_property(item, "P6216")
-        if copyright_status is not None:
-            copyright_item = copyright_status.get("id")
+        if copyright_status:
+            copyright_item = copyright_status[0].get("id")
             if copyright_item == "Q19652":
                 return "https://creativecommons.org/publicdomain/mark/1.0/"
 
@@ -103,12 +107,18 @@ class MetadataCollector:
         if license_property is None:
             return None
 
-        license_item_id = license_property.get("id")
-        license_item = self._get_entity(license_item_id)
-        # P856 = "official website"
-        license_url = self._get_property(license_item, "P856")
+        print(license_property)
+        license_url = None
+        for property in license_property:
+            license_item_id = property.get("id")
+            license_item = self._get_entity(license_item_id)
+            # P856 = "official website"
+            license_url = self._get_property(license_item, "P856")[0]
+            if license_url not in valid_licenses.urls:
+                continue
+            return license_url
 
-        return license_url
+        return None
 
     def _get_license_for_depicted(self) -> str | None:
         depicted = self._get_digital_representation()
@@ -121,13 +131,16 @@ class MetadataCollector:
         property_ = (
             entity.get("claims", {})
             or entity.get("statements", {})
-        ).get(property_name, [None])[0]
+        ).get(property_name, None)
 
         if property_ is None:
-            return None
+            return []
 
-        value = property_.get("mainsnak", {}).get("datavalue", {}).get("value")
-        return value
+        values = [
+            v.get("mainsnak", {}).get("datavalue", {}).get("value")
+            for v in property_
+        ]
+        return values
 
 
 class MissingMetadataError(Exception):
