@@ -1,5 +1,7 @@
 #! /usr/bin/env python
 
+from collections import defaultdict
+import json
 import logging
 import os
 from argparse import ArgumentParser, Namespace
@@ -169,6 +171,7 @@ def process_file(
 
     page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
+    return metadata_collector.get_license()
 
     file = File(journal, page, metadata_collector, api_connector)
     tags = set(args.tag)
@@ -234,7 +237,7 @@ if __name__ == "__main__":
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
-        declarations = declaration_journal.get_declarations(files_tag)
+        declarations = declaration_journal.get_declarations(files_tag, 5000)
         files = [f.title() for f in site.load_pages_from_pageids(
             [d.page_id for d in declarations])]
         batch_name = args.files
@@ -255,6 +258,7 @@ if __name__ == "__main__":
         args.rate_limit
     )
     print(f"Processing {len(files)} files.")
+    licenses = defaultdict(int)
     for i, f in enumerate(files):
         progress = f"{i + 1}/{len(files)}"
         if args.limit:
@@ -263,7 +267,7 @@ if __name__ == "__main__":
         print(progress)
         start_time = time()
         try:
-            added_to_registry = process_file(
+            license = process_file(
                 f,
                 args,
                 declaration_journal,
@@ -271,8 +275,9 @@ if __name__ == "__main__":
                 site,
                 batch_name
             )
-            if added_to_registry:
-                files_added += 1
+            licenses[license] += 1
+            # if added_to_registry:
+            files_added += 1
         except Exception as e:
             logger.exception(f"Error while processing file: '{f}'.")
             print("ERROR")
@@ -296,9 +301,12 @@ if __name__ == "__main__":
                 print(f"Hit limit for declarations made: {args.limit}.")
                 break
 
+    from pprint import pp
+    print(sum(licenses.values()))
+    pp(json.dumps(dict(sorted(dict(licenses).items(), key=lambda item: item[1], reverse=True))))
     print(f"Total time: {time() - start_total_time:.2f}")
     if error_files:
-        print("Some requests failed. See log for details:")
+        print(f"{len(error_files)} requests failed. See log for details:")
         print("\n".join(error_files))
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"DONE: {timestamp}")

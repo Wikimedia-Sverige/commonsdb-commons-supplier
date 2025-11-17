@@ -91,7 +91,7 @@ class MetadataCollector:
         if sdc is None:
             return None
 
-        print(json.dumps(sdc))
+        # print(json.dumps(sdc))
         return self._get_license_for_item(sdc)
 
     def _get_license_for_item(self, item) -> str | None:
@@ -107,8 +107,7 @@ class MetadataCollector:
         if license_property is None:
             return None
 
-        print(license_property)
-        license_url = None
+        # print(license_property)
         for property in license_property:
             license_item_id = property.get("id")
             license_item = self._get_entity(license_item_id)
@@ -117,8 +116,6 @@ class MetadataCollector:
             if license_url not in valid_licenses.urls:
                 continue
             return license_url
-
-        return None
 
     def _get_license_for_depicted(self) -> str | None:
         depicted = self._get_digital_representation()

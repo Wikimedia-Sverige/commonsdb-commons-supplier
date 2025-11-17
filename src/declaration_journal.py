@@ -5,7 +5,7 @@ from typing import Optional, Set
 
 import alembic
 from alembic.config import Config
-from sqlalchemy import Column, ForeignKey, String, Table, create_engine, select
+from sqlalchemy import Column, ForeignKey, String, Table, create_engine, func, select
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -115,8 +115,10 @@ class DeclarationJournal:
         declaration.updated_timestamp = datetime.now()
         self._session.commit()
 
-    def get_declarations(self, tag: str | None = None) -> list[Declaration]:
+    def get_declarations(self, tag: str | None = None, sample=None) -> list[Declaration]:
         statement = select(Declaration)
+        if sample:
+            statement = statement.order_by(func.rand()).limit(sample)
         if tag is not None:
             statement = statement.join(Declaration.tags.and_(Tag.label == tag))
 
