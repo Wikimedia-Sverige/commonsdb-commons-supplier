@@ -12,6 +12,7 @@ from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
+from pywikibot.pagegenerators import PagesFromPageidGenerator
 from pywikibot.site._basesite import BaseSite
 from sqlalchemy.exc import PendingRollbackError
 
@@ -237,9 +238,10 @@ if __name__ == "__main__":
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
-        declarations = declaration_journal.get_declarations(files_tag, 5000)
-        files = [f.title() for f in site.load_pages_from_pageids(
-            [d.page_id for d in declarations])]
+        declarations = declaration_journal.get_declarations(files_tag, 100)
+        files = PagesFromPageidGenerator([d.page_id for d in declarations])
+        # files = [f.title() for f in site.load_pages_from_pageids(
+        #     [d.page_id for d in declarations])]
         batch_name = args.files
     else:
         raise Exception("No valid list file or tag specified.")
@@ -257,14 +259,15 @@ if __name__ == "__main__":
         private_key_path,
         args.rate_limit
     )
-    print(f"Processing {len(files)} files.")
+    # print(f"Processing {len(files)} files.")
     licenses = defaultdict(int)
     for i, f in enumerate(files):
-        progress = f"{i + 1}/{len(files)}"
-        if args.limit:
-            progress += f" [{files_added + 1}/{args.limit}]"
-        progress += f": {f}"
-        print(progress)
+        print(f)
+        # progress = f"{i + 1}/{len(files)}"
+        # if args.limit:
+        #     progress += f" [{files_added + 1}/{args.limit}]"
+        # progress += f": {f}"
+        # print(progress)
         start_time = time()
         try:
             license = process_file(
