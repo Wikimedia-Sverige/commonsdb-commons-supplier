@@ -168,6 +168,7 @@ class MetadataCollectorTestCase(TestCase):
 
         assert license == "https://creativecommons.org/publicdomain/mark/1.0/"
 
+    @pytest.mark.skip("not used")
     def test_get_license_for_depicted(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
@@ -233,6 +234,21 @@ class MetadataCollectorTestCase(TestCase):
         self._mock_response(
             "Q789",
             claims={"P856": "https://creativecommons.org/licenses/by/1.0/"}
+        )
+
+        license = metadata_collector.get_license()
+
+        assert license == "https://creativecommons.org/licenses/by/1.0/"
+
+    def test_get_license_for_image_partial_match(self):
+        self.FilePage.return_value.pageid = "123"
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
+        self._mock_response("M123", statements={"P275": {"id": "Q456"}})
+        self._mock_response(
+            "Q456",
+            claims={"P856": "https://creativecommons.org/licenses/by/1.0"}
         )
 
         license = metadata_collector.get_license()

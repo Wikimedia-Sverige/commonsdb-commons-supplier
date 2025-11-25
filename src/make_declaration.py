@@ -145,7 +145,9 @@ class File:
         logger.info("Getting license.")
         license_url = self._metadata_collector.get_license()
         if self._declaration.ingested_cid is not None:
-            self._extra_public_metadata["supersedes"] = self._declaration.ingested_cid
+            self._extra_public_metadata["supersedes"] = (
+                self._declaration.ingested_cid
+            )
         cid = self._api_connector.request_declaration(
             name,
             self._declaration.iscc,
@@ -161,16 +163,17 @@ class File:
 
 
 def process_file(
-    commons_filename: str,
+    page: FilePage,
+    # commons_filename: str,
     args: Namespace,
     journal: DeclarationJournal,
     api_connector: DeclarationApiConnector,
     site: BaseSite,
     batch_name: str
 ) -> bool:
-    logger.info(f"Processing '{commons_filename}'.")
+    logger.info(f"Processing '{page.title()}'.")
 
-    page = FilePage(site, commons_filename)
+    # page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
     return metadata_collector.get_license()
 
@@ -210,6 +213,7 @@ if __name__ == "__main__":
     parser.add_argument("--rate-limit", "-r", type=float)
     parser.add_argument("--limit", "-l", type=int)
     parser.add_argument("--update", "-u", action="store_true")
+    parser.add_argument("--sample", "-s", type=int)
     parser.add_argument("files")
     args = parser.parse_args()
 
@@ -238,8 +242,11 @@ if __name__ == "__main__":
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
-        declarations = declaration_journal.get_declarations(files_tag, 100)
-        files = PagesFromPageidGenerator([d.page_id for d in declarations])
+        declarations = declaration_journal.get_declarations(
+            files_tag,
+            args.sample
+        )
+        files = PagesFromPageidGenerator([d.page_id for d in declarations], site)
         # files = [f.title() for f in site.load_pages_from_pageids(
         #     [d.page_id for d in declarations])]
         batch_name = args.files
@@ -262,7 +269,7 @@ if __name__ == "__main__":
     # print(f"Processing {len(files)} files.")
     licenses = defaultdict(int)
     for i, f in enumerate(files):
-        print(f)
+        # print("FILE:", i + 1, f)
         # progress = f"{i + 1}/{len(files)}"
         # if args.limit:
         #     progress += f" [{files_added + 1}/{args.limit}]"
@@ -282,9 +289,9 @@ if __name__ == "__main__":
             # if added_to_registry:
             files_added += 1
         except Exception as e:
-            logger.exception(f"Error while processing file: '{f}'.")
+            logger.exception(f"Error while processing file: '{f.title()}'.")
             print("ERROR")
-            error_files.append(f)
+            error_files.append(f.title().replace(" ", "_"))
 
             if type(e) is PendingRollbackError:
                 # Once this exception occurs all attempts to read from the
@@ -310,6 +317,6 @@ if __name__ == "__main__":
     print(f"Total time: {time() - start_total_time:.2f}")
     if error_files:
         print(f"{len(error_files)} requests failed. See log for details:")
-        print("\n".join(error_files))
+        print("\nhttps://commons.wikimedia.org/wiki/".join(error_files))
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"DONE: {timestamp}")

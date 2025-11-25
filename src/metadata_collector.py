@@ -80,8 +80,9 @@ class MetadataCollector:
         return entity
 
     def get_license(self) -> str:
-        license = (self._get_license_for_depicted()
-                   or self._get_license_for_image())
+        license = self._get_license_for_image()
+        # license = (self._get_license_for_depicted()
+        #            or self._get_license_for_image())
         if license is None:
             raise MissingMetadataError("Couldn't get license.")
         return license
@@ -112,10 +113,17 @@ class MetadataCollector:
             license_item_id = property.get("id")
             license_item = self._get_entity(license_item_id)
             # P856 = "official website"
-            license_url = self._get_property(license_item, "P856")[0]
+            website_property = self._get_property(license_item, "P856")
+            if not website_property:
+                continue
+
+            license_url = website_property[0]
             if license_url not in valid_licenses.urls:
                 continue
+
             return license_url
+
+        print("No valid license:", license_property)
 
     def _get_license_for_depicted(self) -> str | None:
         depicted = self._get_digital_representation()
