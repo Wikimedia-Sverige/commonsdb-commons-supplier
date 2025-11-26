@@ -118,12 +118,17 @@ class MetadataCollector:
                 continue
 
             license_url = website_property[0]
-            if license_url not in valid_licenses.urls:
-                continue
-
-            return license_url
+            valid_license = self._make_valid_license(license_url)
+            if valid_license:
+                return valid_license
 
         print("No valid license:", license_property)
+
+    def _make_valid_license(self, license_url: str) -> str | None:
+        for url in valid_licenses.urls:
+            if license_url == url or license_url == url.rstrip("/"):
+                # Accept a URL with or without a trailing slash.
+                return url
 
     def _get_license_for_depicted(self) -> str | None:
         depicted = self._get_digital_representation()
