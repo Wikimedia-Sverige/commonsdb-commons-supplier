@@ -12,7 +12,7 @@ from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
-from pywikibot.pagegenerators import PagesFromPageidGenerator
+from pywikibot.pagegenerators import PagesFromPageidGenerator, PagesFromTitlesGenerator
 from pywikibot.site._basesite import BaseSite
 from sqlalchemy.exc import PendingRollbackError
 
@@ -237,7 +237,7 @@ if __name__ == "__main__":
         list_file = args.files
         logger.info(f"Reading file list from file: '{list_file}'.")
         with open(list_file) as f:
-            files = [g.strip() for g in f]
+            files = PagesFromTitlesGenerator([g.strip() for g in f], site)
         batch_name = f"batch:{Path(list_file).stem}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
@@ -275,6 +275,8 @@ if __name__ == "__main__":
         #     progress += f" [{files_added + 1}/{args.limit}]"
         # progress += f": {f}"
         # print(progress)
+        if f.isRedirectPage():
+            f = f.getRedirectTarget()
         start_time = time()
         try:
             license = process_file(
