@@ -196,7 +196,7 @@ class MetadataCollectorTestCase(TestCase):
         with pytest.raises(MissingMetadataError):
             metadata_collector.get_license()
 
-    def test_get_license_for_image_multiple_licenses(self):
+    def test_get_license_multiple_licenses(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
             "Image on Commons.jpeg"
@@ -218,7 +218,7 @@ class MetadataCollectorTestCase(TestCase):
 
         assert license == "https://creativecommons.org/licenses/by/1.0/"
 
-    def test_get_license_for_image_multiple_licenses_some_invalid(self):
+    def test_get_license_multiple_licenses_some_invalid(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
             "Image on Commons.jpeg"
@@ -240,7 +240,7 @@ class MetadataCollectorTestCase(TestCase):
 
         assert license == "https://creativecommons.org/licenses/by/1.0/"
 
-    def test_get_license_for_image_partial_match(self):
+    def test_get_license_partial_match(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
             "Image on Commons.jpeg"
