@@ -1,6 +1,5 @@
 import logging
 import os
-from tempfile import TemporaryDirectory
 
 from PIL import Image
 from pywikibot import FilePage

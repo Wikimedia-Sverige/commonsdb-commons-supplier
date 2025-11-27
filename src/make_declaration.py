@@ -7,6 +7,7 @@ import os
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
+import random
 from tempfile import TemporaryDirectory
 from time import time
 
@@ -235,7 +236,9 @@ if __name__ == "__main__":
         logger.info(f"Reading file list from file: '{list_file}'.")
         with open(list_file) as f:
             # TODO: sample
-            files = PagesFromTitlesGenerator([g.strip() for g in f], site)
+            if args.sample:
+                f = random.choices(f.readlines(), k=args.sample)
+            files = [g.strip() for g in f]
         batch_name = f"batch:{Path(list_file).stem}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
@@ -244,7 +247,8 @@ if __name__ == "__main__":
             files_tag,
             args.sample
         )
-        files = PagesFromPageidGenerator([d.page_id for d in declarations], site)
+        files = [f.title() for f in site.load_pages_from_pageids(
+            [d.page_id for d in declarations])]
         batch_name = args.files
     else:
         raise Exception("No valid list file or tag specified.")
