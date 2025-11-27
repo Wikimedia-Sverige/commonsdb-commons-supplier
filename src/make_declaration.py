@@ -164,7 +164,6 @@ class File:
 
 def process_file(
     page: FilePage,
-    # commons_filename: str,
     args: Namespace,
     journal: DeclarationJournal,
     api_connector: DeclarationApiConnector,
@@ -173,9 +172,7 @@ def process_file(
 ) -> bool:
     logger.info(f"Processing '{page.title()}'.")
 
-    # page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
-    return metadata_collector.get_license()
 
     file = File(journal, page, metadata_collector, api_connector)
     tags = set(args.tag)
@@ -237,6 +234,7 @@ if __name__ == "__main__":
         list_file = args.files
         logger.info(f"Reading file list from file: '{list_file}'.")
         with open(list_file) as f:
+            # TODO: sample
             files = PagesFromTitlesGenerator([g.strip() for g in f], site)
         batch_name = f"batch:{Path(list_file).stem}"
     elif declaration_journal.tag_exists(args.files):
@@ -247,8 +245,6 @@ if __name__ == "__main__":
             args.sample
         )
         files = PagesFromPageidGenerator([d.page_id for d in declarations], site)
-        # files = [f.title() for f in site.load_pages_from_pageids(
-        #     [d.page_id for d in declarations])]
         batch_name = args.files
     else:
         raise Exception("No valid list file or tag specified.")
@@ -279,7 +275,7 @@ if __name__ == "__main__":
             f = f.getRedirectTarget()
         start_time = time()
         try:
-            license = process_file(
+            added_to_registry = process_file(
                 f,
                 args,
                 declaration_journal,
@@ -287,13 +283,12 @@ if __name__ == "__main__":
                 site,
                 batch_name
             )
-            licenses[license] += 1
-            # if added_to_registry:
-            files_added += 1
+            if added_to_registry:
+                files_added += 1
         except Exception as e:
             logger.exception(f"Error while processing file: '{f.title()}'.")
             print("ERROR")
-            error_files.append(f.title().replace(" ", "_"))
+            error_files.append(f.title())
 
             if type(e) is PendingRollbackError:
                 # Once this exception occurs all attempts to read from the
@@ -313,12 +308,9 @@ if __name__ == "__main__":
                 print(f"Hit limit for declarations made: {args.limit}.")
                 break
 
-    from pprint import pp
-    print(sum(licenses.values()))
-    pp(json.dumps(dict(sorted(dict(licenses).items(), key=lambda item: item[1], reverse=True))))
     print(f"Total time: {time() - start_total_time:.2f}")
     if error_files:
         print(f"{len(error_files)} requests failed. See log for details:")
-        print("\nhttps://commons.wikimedia.org/wiki/".join(error_files))
+        print("\n".join(error_files))
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"DONE: {timestamp}")

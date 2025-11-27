@@ -80,9 +80,8 @@ class MetadataCollector:
         return entity
 
     def get_license(self) -> str:
-        license = self._get_license_for_image()
-        # license = (self._get_license_for_depicted()
-        #            or self._get_license_for_image())
+        license = (self._get_license_for_depicted()
+                   or self._get_license_for_image())
         if license is None:
             raise MissingMetadataError("Couldn't get license.")
         return license
@@ -92,7 +91,6 @@ class MetadataCollector:
         if sdc is None:
             return None
 
-        # print(json.dumps(sdc))
         return self._get_license_for_item(sdc)
 
     def _get_license_for_item(self, item) -> str | None:
@@ -108,7 +106,6 @@ class MetadataCollector:
         if license_property is None:
             return None
 
-        # print(license_property)
         for property in license_property:
             license_item_id = property.get("id")
             license_item = self._get_entity(license_item_id)
@@ -121,8 +118,6 @@ class MetadataCollector:
             valid_license = self._make_valid_license(license_url)
             if valid_license:
                 return valid_license
-
-        print("No valid license:", license_property)
 
     def _make_valid_license(self, license_url: str) -> str | None:
         for url in valid_licenses.urls:
@@ -138,17 +133,17 @@ class MetadataCollector:
         return self._get_license_for_item(depicted)
 
     def _get_property(self, entity: dict, property_name: str):
-        property_ = (
+        properties = (
             entity.get("claims", {})
             or entity.get("statements", {})
         ).get(property_name, None)
 
-        if property_ is None:
+        if properties is None:
             return []
 
         values = [
-            v.get("mainsnak", {}).get("datavalue", {}).get("value")
-            for v in property_
+            p.get("mainsnak", {}).get("datavalue", {}).get("value")
+            for p in properties
         ]
         return values
 
