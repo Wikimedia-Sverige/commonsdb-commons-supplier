@@ -1,19 +1,17 @@
 #! /usr/bin/env python
 
-from collections import defaultdict
-import json
 import logging
 import os
+import random
 from argparse import ArgumentParser, Namespace
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-import random
 from tempfile import TemporaryDirectory
 from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
-from pywikibot.pagegenerators import PagesFromPageidGenerator, PagesFromTitlesGenerator
 from pywikibot.site._basesite import BaseSite
 from sqlalchemy.exc import PendingRollbackError
 

@@ -1,4 +1,3 @@
-import json
 from pywikibot import FilePage
 from pywikibot.data.api import Request
 from pywikibot.site._basesite import BaseSite

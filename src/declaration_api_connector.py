@@ -129,7 +129,9 @@ class DeclarationApiConnector:
         if message == "ingested":
             new_cid = response_content.get("cidV1")
             if old_cid:
-                logger.info(f"Update declaration CID(old): {new_cid}({old_cid})")
+                logger.info(
+                    f"Update declaration CID(old): {new_cid}({old_cid})"
+                )
             else:
                 logger.info(f"New declaration CID: {new_cid}")
             return new_cid
