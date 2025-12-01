@@ -2,7 +2,7 @@ from pywikibot import FilePage
 from pywikibot.data.api import Request
 from pywikibot.site._basesite import BaseSite
 
-import valid_licenses
+import allowed_licenses
 
 
 class MetadataCollector:
@@ -114,12 +114,12 @@ class MetadataCollector:
                 continue
 
             license_url = website_property[0]
-            valid_license = self._make_valid_license(license_url)
-            if valid_license:
-                return valid_license
+            allowed_license = self._make_allowed_license(license_url)
+            if allowed_license:
+                return allowed_license
 
-    def _make_valid_license(self, license_url: str) -> str | None:
-        for url in valid_licenses.urls:
+    def _make_allowed_license(self, license_url: str) -> str | None:
+        for url in allowed_licenses.urls:
             if license_url == url or license_url == url.rstrip("/"):
                 # Accept a URL with or without a trailing slash.
                 return url
