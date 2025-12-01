@@ -234,11 +234,10 @@ if __name__ == "__main__":
     if os.path.exists(args.files):
         list_file = args.files
         logger.info(f"Reading file list from file: '{list_file}'.")
-        with open(list_file) as f:
-            # TODO: sample
+        with open(list_file) as page:
             if args.sample:
-                f = random.choices(f.readlines(), k=args.sample)
-            files = [g.strip() for g in f]
+                page = random.choices(page.readlines(), k=args.sample)
+            files = [g.strip() for g in page]
         batch_name = f"batch:{Path(list_file).stem}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
@@ -247,6 +246,8 @@ if __name__ == "__main__":
             files_tag,
             args.sample
         )
+        pages = site.load_pages_from_pageids(
+            [d.page_id for d in declarations])
         files = [f.title() for f in site.load_pages_from_pageids(
             [d.page_id for d in declarations])]
         batch_name = args.files
@@ -268,19 +269,20 @@ if __name__ == "__main__":
     )
     # print(f"Processing {len(files)} files.")
     licenses = defaultdict(int)
-    for i, f in enumerate(files):
+    for i, page in enumerate(pages):
         # print("FILE:", i + 1, f)
         # progress = f"{i + 1}/{len(files)}"
         # if args.limit:
         #     progress += f" [{files_added + 1}/{args.limit}]"
         # progress += f": {f}"
         # print(progress)
-        if f.isRedirectPage():
-            f = f.getRedirectTarget()
+        if page.isRedirectPage():
+            page = page.getRedirectTarget()
+        page = FilePage(page)
         start_time = time()
         try:
             added_to_registry = process_file(
-                f,
+                page,
                 args,
                 declaration_journal,
                 api_connector,
@@ -290,9 +292,9 @@ if __name__ == "__main__":
             if added_to_registry:
                 files_added += 1
         except Exception as e:
-            logger.exception(f"Error while processing file: '{f.title()}'.")
+            logger.exception(f"Error while processing file: '{page.title()}'.")
             print("ERROR")
-            error_files.append(f.title())
+            error_files.append(page.title())
 
             if type(e) is PendingRollbackError:
                 # Once this exception occurs all attempts to read from the
