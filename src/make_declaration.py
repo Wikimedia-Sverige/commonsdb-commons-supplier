@@ -11,8 +11,12 @@ from tempfile import TemporaryDirectory
 from time import time
 
 from dotenv import load_dotenv
-from pywikibot import FilePage, Site
-from pywikibot.site._basesite import BaseSite
+from pywikibot import FilePage, Page, Site
+from pywikibot.pagegenerators import (
+    PagesFromPageidGenerator,
+    PagesFromTitlesGenerator
+)
+from pywikibot.site import BaseSite
 from sqlalchemy.exc import PendingRollbackError
 
 from declaration_api_connector import DeclarationApiConnector
@@ -232,10 +236,13 @@ if __name__ == "__main__":
     if os.path.exists(args.files):
         list_file = args.files
         logger.info(f"Reading file list from file: '{list_file}'.")
-        with open(list_file) as page:
+        with open(list_file) as f:
+            titles = f.readlines()
             if args.sample:
-                page = random.choices(page.readlines(), k=args.sample)
-            files = [g.strip() for g in page]
+                sample_size = min(args.sample, len(titles))
+                titles = random.sample(titles, sample_size)
+            number_of_files = len(titles)
+            pages = PagesFromTitlesGenerator(titles, site)
         batch_name = f"batch:{Path(list_file).stem}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
@@ -244,10 +251,11 @@ if __name__ == "__main__":
             files_tag,
             args.sample
         )
-        pages = site.load_pages_from_pageids(
-            [d.page_id for d in declarations])
-        files = [f.title() for f in site.load_pages_from_pageids(
-            [d.page_id for d in declarations])]
+        number_of_files = len(declarations)
+        pages = PagesFromPageidGenerator(
+            [d.page_id for d in declarations],
+            site
+        )
         batch_name = args.files
     else:
         raise Exception("No valid list file or tag specified.")
@@ -265,17 +273,13 @@ if __name__ == "__main__":
         private_key_path,
         args.rate_limit
     )
-    # print(f"Processing {len(files)} files.")
-    licenses = defaultdict(int)
+    print(f"Processing {number_of_files} files.")
     for i, page in enumerate(pages):
-        # print("FILE:", i + 1, f)
-        # progress = f"{i + 1}/{len(files)}"
-        # if args.limit:
-        #     progress += f" [{files_added + 1}/{args.limit}]"
-        # progress += f": {f}"
-        # print(progress)
-        if page.isRedirectPage():
-            page = page.getRedirectTarget()
+        progress = f"{i + 1}/{number_of_files}"
+        if args.limit:
+            progress += f" [{files_added + 1}/{args.limit}]"
+        progress += f": {page.title()}"
+        print(progress)
         page = FilePage(page)
         start_time = time()
         try:
