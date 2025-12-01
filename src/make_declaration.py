@@ -2,6 +2,7 @@
 
 import logging
 import os
+import random
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
@@ -10,7 +11,11 @@ from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
-from pywikibot.site._basesite import BaseSite
+from pywikibot.pagegenerators import (
+    PagesFromPageidGenerator,
+    PagesFromTitlesGenerator
+)
+from pywikibot.site import BaseSite
 from sqlalchemy.exc import PendingRollbackError
 
 from declaration_api_connector import DeclarationApiConnector
@@ -160,16 +165,15 @@ class File:
 
 
 def process_file(
-    commons_filename: str,
+    page: FilePage,
     args: Namespace,
     journal: DeclarationJournal,
     api_connector: DeclarationApiConnector,
     site: BaseSite,
     batch_name: str
 ) -> bool:
-    logger.info(f"Processing '{commons_filename}'.")
+    logger.info(f"Processing '{page.title()}'.")
 
-    page = FilePage(site, commons_filename)
     metadata_collector = MetadataCollector(site, page)
 
     file = File(journal, page, metadata_collector, api_connector)
@@ -208,6 +212,7 @@ if __name__ == "__main__":
     parser.add_argument("--rate-limit", "-r", type=float)
     parser.add_argument("--limit", "-l", type=int)
     parser.add_argument("--update", "-u", action="store_true")
+    parser.add_argument("--sample", "-s", type=int)
     parser.add_argument("files")
     args = parser.parse_args()
 
@@ -231,14 +236,25 @@ if __name__ == "__main__":
         list_file = args.files
         logger.info(f"Reading file list from file: '{list_file}'.")
         with open(list_file) as f:
-            files = [g.strip() for g in f]
+            titles = f.readlines()
+            if args.sample:
+                sample_size = min(args.sample, len(titles))
+                titles = random.sample(titles, sample_size)
+            number_of_files = len(titles)
+            pages = PagesFromTitlesGenerator(titles, site)
         batch_name = f"batch:{Path(list_file).stem}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
-        declarations = declaration_journal.get_declarations(files_tag)
-        files = [f.title() for f in site.load_pages_from_pageids(
-            [d.page_id for d in declarations])]
+        declarations = declaration_journal.get_declarations(
+            files_tag,
+            args.sample
+        )
+        number_of_files = len(declarations)
+        pages = PagesFromPageidGenerator(
+            [d.page_id for d in declarations],
+            site
+        )
         batch_name = args.files
     else:
         raise Exception("No valid list file or tag specified.")
@@ -256,17 +272,18 @@ if __name__ == "__main__":
         private_key_path,
         args.rate_limit
     )
-    print(f"Processing {len(files)} files.")
-    for i, f in enumerate(files):
-        progress = f"{i + 1}/{len(files)}"
+    print(f"Processing {number_of_files} files.")
+    for i, page in enumerate(pages):
+        progress = f"{i + 1}/{number_of_files}"
         if args.limit:
             progress += f" [{files_added + 1}/{args.limit}]"
-        progress += f": {f}"
+        progress += f": {page.title()}"
         print(progress)
+        page = FilePage(page)
         start_time = time()
         try:
             added_to_registry = process_file(
-                f,
+                page,
                 args,
                 declaration_journal,
                 api_connector,
@@ -276,9 +293,9 @@ if __name__ == "__main__":
             if added_to_registry:
                 files_added += 1
         except Exception as e:
-            logger.exception(f"Error while processing file: '{f}'.")
+            logger.exception(f"Error while processing file: '{page.title()}'.")
             print("ERROR")
-            error_files.append(f)
+            error_files.append(page.title())
 
             if type(e) is PendingRollbackError:
                 # Once this exception occurs all attempts to read from the
@@ -300,7 +317,7 @@ if __name__ == "__main__":
 
     print(f"Total time: {time() - start_total_time:.2f}")
     if error_files:
-        print("Some requests failed. See log for details:")
+        print(f"{len(error_files)} requests failed. See log for details:")
         print("\n".join(error_files))
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"DONE: {timestamp}")
