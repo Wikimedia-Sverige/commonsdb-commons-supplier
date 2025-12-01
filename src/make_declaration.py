@@ -4,14 +4,13 @@ import logging
 import os
 import random
 from argparse import ArgumentParser, Namespace
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import time
 
 from dotenv import load_dotenv
-from pywikibot import FilePage, Page, Site
+from pywikibot import FilePage, Site
 from pywikibot.pagegenerators import (
     PagesFromPageidGenerator,
     PagesFromTitlesGenerator
