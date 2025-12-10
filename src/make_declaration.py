@@ -1,17 +1,21 @@
 #! /usr/bin/env python
 
+import enum
 import logging
 import os
 import random
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
+import sys
 from tempfile import TemporaryDirectory
 from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
+from pywikibot.page import Category
 from pywikibot.pagegenerators import (
+    CategorizedPageGenerator,
     PagesFromPageidGenerator,
     PagesFromTitlesGenerator
 )
@@ -243,6 +247,12 @@ if __name__ == "__main__":
             number_of_files = len(titles)
             pages = PagesFromTitlesGenerator(titles, site)
         batch_name = f"batch:{Path(list_file).stem}"
+    elif args.files.startswith("Category:"):
+        category = Category(site, args.files)
+        pages = CategorizedPageGenerator(category)
+        for i, p in enumerate(pages, start=1):
+            print(i, p)
+        sys.exit(0)
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
