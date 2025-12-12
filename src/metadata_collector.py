@@ -79,8 +79,7 @@ class MetadataCollector:
         return entity
 
     def get_license(self) -> str:
-        license = (self._get_license_for_depicted()
-                   or self._get_license_for_image())
+        license = self._get_license_for_image()
         if license is None:
             raise MissingMetadataError("Couldn't get license.")
         return license
@@ -123,13 +122,6 @@ class MetadataCollector:
             if license_url == url or license_url == url.rstrip("/"):
                 # Accept a URL with or without a trailing slash.
                 return url
-
-    def _get_license_for_depicted(self) -> str | None:
-        depicted = self._get_digital_representation()
-        if depicted is None:
-            return None
-
-        return self._get_license_for_item(depicted)
 
     def _get_property(self, entity: dict, property_name: str):
         properties = (
