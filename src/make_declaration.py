@@ -1,13 +1,11 @@
 #! /usr/bin/env python
 
-import enum
 import logging
 import os
 import random
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
-import sys
 from tempfile import TemporaryDirectory
 from time import time
 
@@ -17,8 +15,7 @@ from pywikibot.page import Category
 from pywikibot.pagegenerators import (
     CategorizedPageGenerator,
     PagesFromPageidGenerator,
-    PagesFromTitlesGenerator,
-    PreloadingEntityGenerator
+    PagesFromTitlesGenerator
 )
 from pywikibot.site import BaseSite
 from sqlalchemy.exc import PendingRollbackError
@@ -251,8 +248,8 @@ if __name__ == "__main__":
         batch_name = f"batch:{Path(list_file).stem}"
     elif args.files.startswith("Category:"):
         category = Category(site, args.files)
-        pages = CategorizedPageGenerator(category, True, total=10)
-        batch_name = f"batch:{category.title}"
+        pages = CategorizedPageGenerator(category)
+        batch_name = f"batch:{category.title()}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
@@ -290,10 +287,13 @@ if __name__ == "__main__":
             if args.limit:
                 progress += f" [{files_added + 1}/{args.limit}]"
             progress += f": {page.title()}"
-            print(progress)
-        page = FilePage(page)
+        else:
+            progress = f"[{i + 1}]: {page.title()}"
+        print(progress)
+
         start_time = time()
         try:
+            page = FilePage(page)
             added_to_registry = process_file(
                 page,
                 args,
