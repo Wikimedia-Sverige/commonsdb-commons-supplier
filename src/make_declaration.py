@@ -11,7 +11,9 @@ from time import time
 
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
+from pywikibot.page import Category
 from pywikibot.pagegenerators import (
+    CategorizedPageGenerator,
     PagesFromPageidGenerator,
     PagesFromTitlesGenerator
 )
@@ -232,6 +234,7 @@ if __name__ == "__main__":
 
     declaration_journal = create_journal(declaration_journal_url)
     site = Site("commons")
+    number_of_files = None
     if os.path.exists(args.files):
         list_file = args.files
         logger.info(f"Reading file list from file: '{list_file}'.")
@@ -243,6 +246,10 @@ if __name__ == "__main__":
             number_of_files = len(titles)
             pages = PagesFromTitlesGenerator(titles, site)
         batch_name = f"batch:{Path(list_file).stem}"
+    elif args.files.startswith("Category:"):
+        category = Category(site, args.files)
+        pages = CategorizedPageGenerator(category, True)
+        batch_name = f"batch:{category.title()}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
@@ -272,16 +279,21 @@ if __name__ == "__main__":
         private_key_path,
         args.rate_limit
     )
-    print(f"Processing {number_of_files} files.")
+    if number_of_files:
+        print(f"Processing {number_of_files} files.")
     for i, page in enumerate(pages):
-        progress = f"{i + 1}/{number_of_files}"
-        if args.limit:
-            progress += f" [{files_added + 1}/{args.limit}]"
-        progress += f": {page.title()}"
+        if number_of_files:
+            progress = f"{i + 1}/{number_of_files}"
+            if args.limit:
+                progress += f" [{files_added + 1}/{args.limit}]"
+            progress += f": {page.title()}"
+        else:
+            progress = f"{i + 1}: {page.title()}"
         print(progress)
-        page = FilePage(page)
+
         start_time = time()
         try:
+            page = FilePage(page)
             added_to_registry = process_file(
                 page,
                 args,
