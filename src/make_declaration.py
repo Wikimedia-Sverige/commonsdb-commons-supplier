@@ -288,7 +288,7 @@ if __name__ == "__main__":
                 progress += f" [{files_added + 1}/{args.limit}]"
             progress += f": {page.title()}"
         else:
-            progress = f"[{i + 1}]: {page.title()}"
+            progress = f"{i + 1}: {page.title()}"
         print(progress)
 
         start_time = time()
