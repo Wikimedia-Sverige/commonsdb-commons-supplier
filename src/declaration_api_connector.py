@@ -3,6 +3,7 @@ import hashlib
 import json
 import logging
 import subprocess
+import sys
 from time import sleep, time
 from types import SimpleNamespace
 
@@ -10,6 +11,7 @@ import jwt
 import multihash
 import requests
 from base58 import b58encode
+from jwcrypto.jwk import JWK
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,8 @@ class DeclarationApiConnector:
         # Epoch time in milliseconds.
         timestamp = int(time() * 1000)
         public_metadata = {
+            "schema": "https://w3id.org/commonsdb/schema/0.2.0.json",
+            "context": "https://w3id.org/commonsdb/context/0.2.0.json",
             "iscc": iscc,
             "name": name,
             "original": True,
@@ -151,11 +155,25 @@ class DeclarationApiConnector:
         return b58encode(cid).decode()
 
     def _get_signature(self, data: dict) -> str:
+        public_key = b"""-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElY0Fsx0dGra4cmBJ4Wf5s9NNbtHy
+g4UJDJfnwT9AKHLXbRF4+pQhMU6klOvwH/IlC2g89Do7KfdCGtKC8kexzg==
+-----END PUBLIC KEY-----
+"""
+        jwk = json.loads(JWK.from_pem(public_key).export())
+        headers = {
+            "jwk": jwk,
+            "alg": "ES256",
+            "typ": "JWT",
+        }
         signature = jwt.encode(
             data,
             self._private_key,
+            headers=headers,
             algorithm="ES256"
         )
+        print(signature)
+        sys.exit(0)
         return signature
 
     def _get_tsa(self, data: dict, name: str) -> dict:
