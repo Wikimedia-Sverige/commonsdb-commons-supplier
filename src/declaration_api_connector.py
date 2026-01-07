@@ -160,7 +160,7 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElY0Fsx0dGra4cmBJ4Wf5s9NNbtHy
 g4UJDJfnwT9AKHLXbRF4+pQhMU6klOvwH/IlC2g89Do7KfdCGtKC8kexzg==
 -----END PUBLIC KEY-----
 """
-        jwk = json.loads(JWK.from_pem(public_key).export())
+        jwk = JWK.from_pem(public_key).export(as_dict=True)
         headers = {
             "jwk": jwk,
             "alg": "ES256",
