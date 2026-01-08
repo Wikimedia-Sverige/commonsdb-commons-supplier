@@ -1,5 +1,4 @@
 import base64
-import hashlib
 import json
 import logging
 import subprocess
@@ -7,9 +6,7 @@ from time import sleep, time
 from types import SimpleNamespace
 
 import jwt
-import multihash
 import requests
-from base58 import b58encode
 from jwcrypto.jwk import JWK
 
 logger = logging.getLogger(__name__)
@@ -67,7 +64,7 @@ class DeclarationApiConnector:
         public_metadata = {
             "$schema": "https://w3id.org/commonsdb/schema/0.2.0.json",
             "@context": "https://w3id.org/commonsdb/context/0.2.0.json",
-            "declarerId": "did:tmp:abc123",
+            "declarerId": self._member_credentials.get("credentialSubject").get("id"),
             "iscc": iscc,
             "name": name,
             "original": True,
@@ -97,8 +94,7 @@ class DeclarationApiConnector:
                 "publicMetadata": public_metadata,
                 "commonsDbRegistry": commons_db_metadata
             },
-            "commonsDbRegistrySignature":
-                cdbSignature,
+            "commonsDbRegistrySignature": cdbSignature,
             "commonsDbRegistryTsaSignature":
                 self._get_tsa(cdbSignature, "commons-db-tsa")
         }
