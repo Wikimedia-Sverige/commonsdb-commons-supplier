@@ -230,6 +230,7 @@ if __name__ == "__main__":
     api_key = get_os_env("API_KEY")
     member_credentials_path = get_os_env("MEMBER_CREDENTIALS_FILE")
     private_key_path = get_os_env("PRIVATE_KEY_FILE")
+    public_key_path = get_os_env("PUBLIC_KEY_FILE")
     declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
 
     declaration_journal = create_journal(declaration_journal_url)
@@ -277,6 +278,7 @@ if __name__ == "__main__":
         api_key,
         member_credentials_path,
         private_key_path,
+        public_key_path,
         args.rate_limit
     )
     if number_of_files:

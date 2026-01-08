@@ -3,7 +3,6 @@ import hashlib
 import json
 import logging
 import subprocess
-import sys
 from time import sleep, time
 from types import SimpleNamespace
 
@@ -24,12 +23,14 @@ class DeclarationApiConnector:
         api_key: str,
         member_credentials_path: str,
         private_key_path: str,
+        public_key_path: str,
         rate_limit: float = 0
     ):
         self._dry = dry
         self._member_credentials = (self._read_json(member_credentials_path)
                                     .get("verifiableCredential"))
         self._private_key = self._read_text(private_key_path)
+        self._public_key = self._read_text(public_key_path).encode("utf-8")
         self._api_endpoint = api_endpoint
         self._api_key = api_key
         self._rate_limit = rate_limit
@@ -155,12 +156,7 @@ class DeclarationApiConnector:
         return b58encode(cid).decode()
 
     def _get_signature(self, data: dict) -> str:
-        public_key = b"""-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElY0Fsx0dGra4cmBJ4Wf5s9NNbtHy
-g4UJDJfnwT9AKHLXbRF4+pQhMU6klOvwH/IlC2g89Do7KfdCGtKC8kexzg==
------END PUBLIC KEY-----
-"""
-        jwk = JWK.from_pem(public_key).export(as_dict=True)
+        jwk = JWK.from_pem(self._public_key).export(as_dict=True)
         headers = {
             "jwk": jwk,
             "alg": "ES256",
@@ -172,8 +168,6 @@ g4UJDJfnwT9AKHLXbRF4+pQhMU6klOvwH/IlC2g89Do7KfdCGtKC8kexzg==
             headers=headers,
             algorithm="ES256"
         )
-        print(signature)
-        sys.exit(0)
         return signature
 
     def _get_tsa(self, data: dict, name: str) -> dict:
