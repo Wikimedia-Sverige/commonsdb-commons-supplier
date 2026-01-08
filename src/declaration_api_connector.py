@@ -11,7 +11,6 @@ import multihash
 import requests
 from base58 import b58encode
 from jwcrypto.jwk import JWK
-from pythonodejs import node_eval
 
 logger = logging.getLogger(__name__)
 
@@ -89,10 +88,6 @@ class DeclarationApiConnector:
             "credentials": [{"proof": proof}],
             "timestamp": timestamp
         }
-        # print("========")
-        # print(self._get_signature(public_metadata))
-        # print("========")
-        # raise Exception("STOP")
         signature = self._get_signature(public_metadata)
         cdbSignature = self._get_signature(commons_db_metadata)
         data = {
@@ -174,24 +169,9 @@ class DeclarationApiConnector:
         return signature
 
     def _get_tsa(self, data, name: str) -> dict:
-        # command = ["dev/tsa.sh", data]
-        # subprocess.run(command)
-        # with open(f"{name}.tsq", "rb") as tsq_file:
-        #     tsq_data = tsq_file.read()
-        #     tsq = base64.b64encode(tsq_data).decode()
-        # print(tsq)
-
-        # with open(f"{name}.tsr", "rb") as tsr_file:
-        #     tsr_data = tsr_file.read()
-        #     tsr = base64.b64encode(tsr_data).decode()
-        # print(tsr)
-
-        # return {"tsq": tsq, "tsr": tsr}
-        
         # TODO: Do this without having to juggle files.
         with open(f"{name}.json", "w") as data_file:
             data_file.write(data)
-            # json.dump(data, data_file)
 
         # TODO: Is there a library that does this instead?
         openssl_command = [
@@ -211,117 +191,20 @@ class DeclarationApiConnector:
         headers = {"Content-Type": "application/timestamp-query"}
         with open(f"{name}.tsq", "rb") as tsq_file:
             tsq = tsq_file.read()
-        # node_tsq = subprocess.run(["node", "tsa.ts", data], cwd="../node", capture_output=True).stdout.strip().decode()
-        node_tsq = make_tsa_node(data)
-        tsq_b64 = node_tsq
-        # tsq_b64 = node_tsq
-        print("=" * 50)
-        print(node_tsq)
-        print(tsq)
+        tsq_b64 = base64.b64encode(tsq).decode()
         r = requests.post(
             "https://freetsa.org/tsr",
-            data=base64.b64decode(tsq_b64),
+            data=tsq,
             headers=headers
         )
         tsr = r.content
         tsr_b64 = base64.b64encode(tsr).decode()
-        print("-" * 50)
-        print(base64.b64decode(tsr_b64))
-        print("=" * 50)
 
         # Save to file if you want to verify easily.
         with open(f"{name}.tsr", "wb") as tsr_file:
             tsr_file.write(r.content)
 
         return {"tsq": tsq_b64, "tsr": tsr_b64}
-
-
-make_tsa_node = node_eval("""
-    function tsa(data) {
-  const crypto = require('crypto');
-
-  const hash = crypto.createHash("sha512").update(data).digest();
-
-  const hashAlgorithmOid = Buffer.from([
-    0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03,
-  ]);
-  const algorithmIdentifier = Buffer.concat([
-    Buffer.from([0x30, hashAlgorithmOid.length]),
-    hashAlgorithmOid,
-  ]);
-
-  const hashedMessage = Buffer.concat([
-    Buffer.from([0x04, hash.length]),
-    hash,
-  ]);
-
-  const messageImprint = Buffer.concat([
-    Buffer.from([0x30, algorithmIdentifier.length + hashedMessage.length]),
-    algorithmIdentifier,
-    hashedMessage,
-  ]);
-
-  const version = Buffer.from([0x02, 0x01, 0x01]);
-  const tsReqContent = Buffer.concat([version, messageImprint]);
-  const tsReq = Buffer.concat([
-    Buffer.from([0x30, tsReqContent.length]),
-    tsReqContent,
-  ]);
-
-  const tsqBase64 = tsReq.toString("base64");
-
-  return tsqBase64;
-  }
-  
-  tsa;
-    """)
-
-def create_timestamp_request(data) -> bytes:
-    """
-    Creates a Time-Stamp Protocol (TSP) request according to RFC 3161.
-    
-    Args:
-        data: The data to be timestamped. Can be bytes or string.
-    
-    Returns:
-        The complete TSP request as bytes.
-    """
-    # Convert string to bytes if necessary
-    if isinstance(data, str):
-        data = data.encode('utf-8')
-    
-    # Step 1: Create SHA-512 hash of the data
-    hash_obj = hashlib.sha512(data)
-    hash_bytes = hash_obj.digest()
-    
-    # Step 2: Create hash algorithm OID (SHA-512 OID: 2.16.840.1.101.3.4.2.3)
-    # OID: 2.16.840.1.101.3.4.2.3 in ASN.1 DER encoding
-    hash_algorithm_oid = bytes([
-        0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03,
-    ])
-    
-    # Step 3: Create AlgorithmIdentifier SEQUENCE
-    # 0x30 = SEQUENCE tag, followed by length
-    algorithm_identifier = bytes([0x30, len(hash_algorithm_oid)]) + hash_algorithm_oid
-    
-    # Step 4: Create hashedMessage OCTET STRING
-    # 0x04 = OCTET STRING tag, followed by length
-    hashed_message = bytes([0x04, len(hash_bytes)]) + hash_bytes
-    
-    # Step 5: Create MessageImprint SEQUENCE
-    message_imprint_length = len(algorithm_identifier) + len(hashed_message)
-    message_imprint = bytes([0x30, message_imprint_length]) + algorithm_identifier + hashed_message
-    
-    # Step 6: Create version INTEGER (v1)
-    version = bytes([0x02, 0x01, 0x01])  # INTEGER tag (0x02), length 1, value 1
-    
-    # Step 7: Create TimeStampReqContent SEQUENCE
-    ts_req_content = version + message_imprint
-    
-    # Step 8: Create final TimeStampReq SEQUENCE
-    ts_req = bytes([0x30, len(ts_req_content)]) + ts_req_content
-    
-    return ts_req
 
 
 class ReadFileError(Exception):
