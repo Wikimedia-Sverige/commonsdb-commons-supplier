@@ -129,25 +129,22 @@ class DeclarationApiConnector:
         logger.debug(f"Received response: {response.text}")
 
         response_content = response.json()
-        message = response_content.get("message")
         if not response.ok:
             logger.error(f"Response code is non OK: {response.status_code}.")
             if response.status_code == 422:
                 for validation_error in response_content.get("validationErrors"):
                     logger.error(validation_error)
-            raise Exception("Invalid declaration.")
+            raise Exception("Invalid declaration. See response above for details.")
 
-        elif message == "ingested":
-            new_cid = response_content.get("cidV1")
-            if old_cid:
-                logger.info(
-                    f"Update declaration CID(old): {new_cid}({old_cid})"
-                )
-            else:
-                logger.info(f"New declaration CID: {new_cid}")
-            return new_cid
+        new_cid = response_content.get("cidV1")
+        if old_cid:
+            logger.info(
+                f"Update declaration CID(old): {new_cid}({old_cid})"
+            )
         else:
-            logger.warning(f"Unexpected message in response: '{message}'.")
+            logger.info(f"New declaration CID: {new_cid}")
+
+        return new_cid
 
     def _get_signature(self, data: dict) -> str:
         jwk = JWK.from_pem(self._public_key).export(as_dict=True)
@@ -164,9 +161,9 @@ class DeclarationApiConnector:
         )
         return signature
 
-    def _get_tsa(self, data, name: str) -> dict:
+    def _get_tsa(self, data: str, name: str) -> dict:
         # TODO: Do this without having to juggle files.
-        with open(f"{name}.json", "w") as data_file:
+        with open(f"{name}.txt", "w") as data_file:
             data_file.write(data)
 
         # TODO: Is there a library that does this instead?
@@ -175,7 +172,7 @@ class DeclarationApiConnector:
             "ts",
             "-query",
             "-data",
-            f"{name}.json",
+            f"{name}.txt",
             "-no_nonce",
             "-sha512",
             "-cert",
