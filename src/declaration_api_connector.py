@@ -1,5 +1,4 @@
 import base64
-import hashlib
 import json
 import logging
 import subprocess
@@ -7,9 +6,8 @@ from time import sleep, time
 from types import SimpleNamespace
 
 import jwt
-import multihash
 import requests
-from base58 import b58encode
+from jwcrypto.jwk import JWK
 
 logger = logging.getLogger(__name__)
 
@@ -22,12 +20,14 @@ class DeclarationApiConnector:
         api_key: str,
         member_credentials_path: str,
         private_key_path: str,
+        public_key_path: str,
         rate_limit: float = 0
     ):
         self._dry = dry
         self._member_credentials = (self._read_json(member_credentials_path)
                                     .get("verifiableCredential"))
         self._private_key = self._read_text(private_key_path)
+        self._public_key = self._read_text(public_key_path).encode("utf-8")
         self._api_endpoint = api_endpoint
         self._api_key = api_key
         self._rate_limit = rate_limit
@@ -62,10 +62,13 @@ class DeclarationApiConnector:
         # Epoch time in milliseconds.
         timestamp = int(time() * 1000)
         public_metadata = {
+            "$schema": "https://w3id.org/commonsdb/schema/0.2.0.json",
+            "@context": "https://w3id.org/commonsdb/context/0.2.0.json",
+            "declarerId": self._member_credentials.get("credentialSubject").get("id"),
             "iscc": iscc,
             "name": name,
             "original": True,
-            "version": 0,
+            "version": 1,
             "timestamp": timestamp,
             "credentials": [self._member_credentials],
             "supplierData": {
@@ -82,17 +85,18 @@ class DeclarationApiConnector:
             "credentials": [{"proof": proof}],
             "timestamp": timestamp
         }
+        signature = self._get_signature(public_metadata)
+        cdbSignature = self._get_signature(commons_db_metadata)
         data = {
-            "signature": self._get_signature(public_metadata),
-            "tsaSignature": self._get_tsa(public_metadata, "tsa"),
+            "signature": signature,
+            "tsaSignature": self._get_tsa(signature, "tsa"),
             "declarationMetadata": {
                 "publicMetadata": public_metadata,
                 "commonsDbRegistry": commons_db_metadata
             },
-            "commonsDbRegistrySignature":
-                self._get_signature(commons_db_metadata),
+            "commonsDbRegistrySignature": cdbSignature,
             "commonsDbRegistryTsaSignature":
-                self._get_tsa(commons_db_metadata, "commons-db-tsa")
+                self._get_tsa(cdbSignature, "commons-db-tsa")
         }
         headers = {
             "User-Agent": "commonsdb-commons-supplier/0.0.1",
@@ -112,9 +116,9 @@ class DeclarationApiConnector:
         if self._dry:
             def dry_json():
                 if old_cid:
-                    return {"message": "ingested", "cidV1": "cid456"}
+                    return {"cidV1": "cid456"}
                 else:
-                    return {"message": "ingested", "cidV1": "cid123"}
+                    return {"cidV1": "cid123"}
             response = SimpleNamespace(
                 text="DRY RESPONSE",
                 json=dry_json
@@ -125,43 +129,42 @@ class DeclarationApiConnector:
         logger.debug(f"Received response: {response.text}")
 
         response_content = response.json()
-        message = response_content.get("message")
-        if message == "ingested":
-            new_cid = response_content.get("cidV1")
-            if old_cid:
-                logger.info(
-                    f"Update declaration CID(old): {new_cid}({old_cid})"
-                )
-            else:
-                logger.info(f"New declaration CID: {new_cid}")
-            return new_cid
-        else:
-            logger.warning(f"Unexpected message in response: '{message}'.")
+        if not response.ok:
+            logger.error(f"Response code is non OK: {response.status_code}.")
+            if response.status_code == 422:
+                for validation_error in response_content.get("validationErrors"):
+                    logger.error(validation_error)
+            raise Exception("Invalid declaration. See response above for details.")
 
-    def _get_cid(self, public_metadata: str) -> str:
-        json_string = json.dumps(
-            public_metadata,
-            separators=(',', ':'),
-            sort_keys=True
-        )
-        hash = hashlib.sha256((json_string.encode()))
-        prefix = bytes([0x12, 0x20])
-        mh = multihash.encode(hash.digest(), "sha2-256")
-        cid = b"".join([prefix, mh])
-        return b58encode(cid).decode()
+        new_cid = response_content.get("cidV1")
+        if old_cid:
+            logger.info(
+                f"Update declaration CID(old): {new_cid}({old_cid})"
+            )
+        else:
+            logger.info(f"New declaration CID: {new_cid}")
+
+        return new_cid
 
     def _get_signature(self, data: dict) -> str:
+        jwk = JWK.from_pem(self._public_key).export(as_dict=True)
+        headers = {
+            "jwk": jwk,
+            "alg": "ES256",
+            "typ": "JWT",
+        }
         signature = jwt.encode(
             data,
             self._private_key,
+            headers=headers,
             algorithm="ES256"
         )
         return signature
 
-    def _get_tsa(self, data: dict, name: str) -> dict:
+    def _get_tsa(self, data: str, name: str) -> dict:
         # TODO: Do this without having to juggle files.
-        with open(f"{name}.json", "w") as data_file:
-            json.dump(data, data_file)
+        with open(f"{name}.txt", "w") as data_file:
+            data_file.write(data)
 
         # TODO: Is there a library that does this instead?
         openssl_command = [
@@ -169,7 +172,7 @@ class DeclarationApiConnector:
             "ts",
             "-query",
             "-data",
-            f"{name}.json",
+            f"{name}.txt",
             "-no_nonce",
             "-sha512",
             "-cert",
@@ -180,19 +183,21 @@ class DeclarationApiConnector:
 
         headers = {"Content-Type": "application/timestamp-query"}
         with open(f"{name}.tsq", "rb") as tsq_file:
-            tsq_data = tsq_file.read()
-            r = requests.post(
-                "https://freetsa.org/tsr",
-                data=tsq_data,
-                headers=headers
-            )
-            tsq = base64.b64encode(tsq_data).decode()
+            tsq = tsq_file.read()
+        tsq_b64 = base64.b64encode(tsq).decode()
+        r = requests.post(
+            "https://freetsa.org/tsr",
+            data=tsq,
+            headers=headers
+        )
+        tsr = r.content
+        tsr_b64 = base64.b64encode(tsr).decode()
 
-        tsr = base64.b64encode(r.content).decode()
+        # Save to file if you want to verify easily.
         with open(f"{name}.tsr", "wb") as tsr_file:
             tsr_file.write(r.content)
 
-        return {"tsq": tsq, "tsr": tsr}
+        return {"tsq": tsq_b64, "tsr": tsr_b64}
 
 
 class ReadFileError(Exception):

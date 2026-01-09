@@ -59,7 +59,7 @@ class File:
 
     def is_in_registry(self) -> bool:
         return self._declaration is not None \
-            and self._declaration.ingested_cid is not None
+            and self._declaration.cid is not None
 
     def create(self, tags: set[str]):
         self._download_file()
@@ -148,9 +148,9 @@ class File:
         name = self._metadata_collector.get_name()
         logger.info("Getting license.")
         license_url = self._metadata_collector.get_license()
-        if self._declaration.ingested_cid is not None:
+        if self._declaration.cid is not None:
             self._extra_public_metadata["supersedes"] = (
-                self._declaration.ingested_cid
+                self._declaration.cid
             )
         cid = self._api_connector.request_declaration(
             name,
@@ -162,7 +162,7 @@ class File:
         if cid is None:
             return False
 
-        self._journal.update_declaration(self._declaration, ingested_cid=cid)
+        self._journal.update_declaration(self._declaration, cid=cid)
         return True
 
 
@@ -230,6 +230,7 @@ if __name__ == "__main__":
     api_key = get_os_env("API_KEY")
     member_credentials_path = get_os_env("MEMBER_CREDENTIALS_FILE")
     private_key_path = get_os_env("PRIVATE_KEY_FILE")
+    public_key_path = get_os_env("PUBLIC_KEY_FILE")
     declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
 
     declaration_journal = create_journal(declaration_journal_url)
@@ -277,6 +278,7 @@ if __name__ == "__main__":
         api_key,
         member_credentials_path,
         private_key_path,
+        public_key_path,
         args.rate_limit
     )
     if number_of_files:
