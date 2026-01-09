@@ -162,7 +162,7 @@ class File:
         if cid is None:
             return False
 
-        self._journal.update_declaration(self._declaration, ingested_cid=cid)
+        self._journal.update_declaration(self._declaration, cid=cid)
         return True
 
 

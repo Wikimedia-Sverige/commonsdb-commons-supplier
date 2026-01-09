@@ -1,10 +1,9 @@
 import inspect
 import logging
 from datetime import datetime
+import subprocess
 from typing import Optional, Set
 
-import alembic
-from alembic.config import Config
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -83,10 +82,12 @@ class DeclarationJournal:
         if engine.url != "sqlite:///:memory:":
             # The is mostly for testing.
             Base.metadata.create_all(engine)
-        else:
-            # Make sure that the database is up to date.
-            alembic_cfg = Config("alembic.ini")
-            alembic.command.upgrade(alembic_cfg, "head")
+
+        # Make sure that the database is up to date.
+        logger.info("Updating database if needed.")
+        # Run as subprocess because alembic.command breaks logging.
+        p = subprocess.run(["alembic", "upgrade", "head"])
+        p.check_returncode()
 
     def add_declaration(self, tag_labels: Set[str], **kwargs) -> Declaration:
         tags = set()

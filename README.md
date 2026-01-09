@@ -52,7 +52,7 @@ Module import order is handled by [Isort](https://pycqa.github.io/isort/).
 
 Github actions are specified in .github/workflows/python.yml. By deafult Tox will run when code is pushed.
 
-## Database
+### Database
 
 When the tables change create a new version:
 
