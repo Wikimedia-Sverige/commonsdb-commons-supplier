@@ -59,7 +59,7 @@ class File:
 
     def is_in_registry(self) -> bool:
         return self._declaration is not None \
-            and self._declaration.ingested_cid is not None
+            and self._declaration.cid is not None
 
     def create(self, tags: set[str]):
         self._download_file()
@@ -148,9 +148,9 @@ class File:
         name = self._metadata_collector.get_name()
         logger.info("Getting license.")
         license_url = self._metadata_collector.get_license()
-        if self._declaration.ingested_cid is not None:
+        if self._declaration.cid is not None:
             self._extra_public_metadata["supersedes"] = (
-                self._declaration.ingested_cid
+                self._declaration.cid
             )
         cid = self._api_connector.request_declaration(
             name,

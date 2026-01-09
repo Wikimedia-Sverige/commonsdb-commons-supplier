@@ -53,7 +53,7 @@ class Declaration(Base):
     iscc: Mapped[Optional[str]] = mapped_column(String(61))
     iscc_time: Mapped[Optional[float]]
     tags: Mapped[Set["Tag"]] = relationship(secondary=tag_association)
-    ingested_cid: Mapped[Optional[str]] = mapped_column(String(57))
+    cid: Mapped[Optional[str]] = mapped_column(String(57))
 
     def __repr__(self) -> str:
         fields = get_fields(self)

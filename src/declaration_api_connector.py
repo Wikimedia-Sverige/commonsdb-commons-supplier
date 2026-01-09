@@ -116,9 +116,9 @@ class DeclarationApiConnector:
         if self._dry:
             def dry_json():
                 if old_cid:
-                    return {"message": "ingested", "cidV1": "cid456"}
+                    return {"cidV1": "cid456"}
                 else:
-                    return {"message": "ingested", "cidV1": "cid123"}
+                    return {"cidV1": "cid123"}
             response = SimpleNamespace(
                 text="DRY RESPONSE",
                 json=dry_json
