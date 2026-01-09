@@ -1,7 +1,7 @@
 import inspect
 import logging
-from datetime import datetime
 import subprocess
+from datetime import datetime
 from typing import Optional, Set
 
 from sqlalchemy import (
