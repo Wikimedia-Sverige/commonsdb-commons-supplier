@@ -83,11 +83,11 @@ class DeclarationJournal:
             # The is mostly for testing.
             Base.metadata.create_all(engine)
 
-        # Make sure that the database is up to date.
-        logger.info("Updating database if needed.")
-        # Run as subprocess because alembic.command breaks logging.
-        p = subprocess.run(["alembic", "upgrade", "head"])
-        p.check_returncode()
+            # Make sure that the database is up to date.
+            logger.info("Updating database if needed.")
+            # Run as subprocess because alembic.command breaks logging.
+            p = subprocess.run(["alembic", "upgrade", "head"])
+            p.check_returncode()
 
     def add_declaration(self, tag_labels: Set[str], **kwargs) -> Declaration:
         tags = set()
