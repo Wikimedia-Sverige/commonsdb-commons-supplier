@@ -123,6 +123,7 @@ class DeclarationApiConnector:
                 text="DRY RESPONSE",
                 json=dry_json
             )
+            response.ok = True
         else:
             response = requests.post(
                 self._api_endpoint, json=data, headers=headers)

@@ -250,7 +250,7 @@ if __name__ == "__main__":
     elif args.files.startswith("Category:"):
         category = Category(site, args.files)
         pages = CategorizedPageGenerator(category, True)
-        batch_name = f"batch:{category.title()}"
+        batch_name = f"batch:category-{category.pageid}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
@@ -286,11 +286,11 @@ if __name__ == "__main__":
     for i, page in enumerate(pages):
         if number_of_files:
             progress = f"{i + 1}/{number_of_files}"
-            if args.limit:
-                progress += f" [{files_added + 1}/{args.limit}]"
-            progress += f": {page.title()}"
         else:
-            progress = f"{i + 1}: {page.title()}"
+            progress = f"{i + 1}"
+        if args.limit:
+            progress += f" [{files_added + 1}/{args.limit}]"
+        progress += f" {page.title()}"
         print(progress)
 
         start_time = time()
