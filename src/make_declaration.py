@@ -3,6 +3,7 @@
 import logging
 import os
 import random
+import sys
 from argparse import ArgumentParser, Namespace
 from datetime import datetime
 from pathlib import Path
@@ -271,6 +272,7 @@ if __name__ == "__main__":
     error_files = []
     files_added = 0
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
+    breaking_error = False
     print(f"START: {timestamp}")
     api_connector = DeclarationApiConnector(
         args.dry,
@@ -317,6 +319,7 @@ if __name__ == "__main__":
                 # TODO: Figure out how to handle these errors if possible.
                 logger.exception(
                     "Don't know how to handle this error. Stopping run.")
+                breaking_error = True
                 break
 
             if args.quit_on_error:
@@ -335,3 +338,6 @@ if __name__ == "__main__":
         print("\n".join(error_files))
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     print(f"DONE: {timestamp}")
+
+    if breaking_error:
+        sys.exit(1)
