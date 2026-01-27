@@ -30,6 +30,12 @@ from thumbnail_generator import ThumbnailGenerator
 
 logger = logging.getLogger(__name__)
 
+# Results for processing files.
+DECLARED = "DECLARED"
+FAILED = "FAILED"
+ONLY_ISCC = "ONLY_ISCC"
+SKIPPED = "SKIPPED"
+
 
 class File:
     def __init__(
@@ -174,7 +180,7 @@ def process_file(
     api_connector: DeclarationApiConnector,
     site: BaseSite,
     batch_name: str
-) -> bool:
+) -> str:
     logger.info(f"Processing '{page.title()}'.")
 
     metadata_collector = MetadataCollector(site, page)
@@ -187,14 +193,17 @@ def process_file(
     else:
         if file.is_in_registry() and not args.update:
             logger.info("Skiping file already in registry.")
-            return False
+            return SKIPPED
 
         file.update()
 
     if args.iscc:
-        return False
+        return ONLY_ISCC
 
-    return file.make_request()
+    if file.make_request():
+        return DECLARED
+    else:
+        return FAILED
 
 
 def get_os_env(name) -> str:
@@ -270,6 +279,7 @@ if __name__ == "__main__":
 
     start_total_time = time()
     error_files = []
+    skipped_files = []
     files_added = 0
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     breaking_error = False
@@ -298,7 +308,7 @@ if __name__ == "__main__":
         start_time = time()
         try:
             page = FilePage(page)
-            added_to_registry = process_file(
+            process_result = process_file(
                 page,
                 args,
                 declaration_journal,
@@ -306,8 +316,11 @@ if __name__ == "__main__":
                 site,
                 batch_name
             )
-            if added_to_registry:
+            if process_result == DECLARED:
                 files_added += 1
+            elif process_result == SKIPPED:
+                print("SKIP")
+                skipped_files.append(page.title())
         except Exception as e:
             logger.exception(f"Error while processing file: '{page.title()}'.")
             print("ERROR")
@@ -333,6 +346,9 @@ if __name__ == "__main__":
                 break
 
     print(f"Total time: {time() - start_total_time:.2f}")
+    if skipped_files:
+        print(f"{len(skipped_files)} files skipped:")
+        print("\n".join(skipped_files))
     if error_files:
         print(f"{len(error_files)} requests failed. See log for details:")
         print("\n".join(error_files))
