@@ -1,5 +1,7 @@
 # commonsdb-commons-supplier
 
+Version: 0.1.0
+
 ## Requirements
 
 Python 3.12. May work with other versions, but not guaranteed.
