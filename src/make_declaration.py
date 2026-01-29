@@ -192,7 +192,7 @@ def process_file(
         file.create(tags)
     else:
         if file.is_in_registry() and not args.update:
-            logger.info("Skiping file already in registry.")
+            logger.info("Skipping file already in registry.")
             return SKIPPED
 
         file.update()
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     start_total_time = time()
     error_files = []
     skipped_files = []
-    files_added = 0
+    files_declared = 0
     timestamp = datetime.now().astimezone().replace(microsecond=0).isoformat()
     breaking_error = False
     print(f"START: {timestamp}")
@@ -301,7 +301,7 @@ if __name__ == "__main__":
         else:
             progress = f"{i + 1}"
         if args.limit:
-            progress += f" [{files_added + 1}/{args.limit}]"
+            progress += f" [{files_declared + 1}/{args.limit}]"
         progress += f" {page.title()}"
         print(progress)
 
@@ -317,7 +317,7 @@ if __name__ == "__main__":
                 batch_name
             )
             if process_result == DECLARED:
-                files_added += 1
+                files_declared += 1
             elif process_result == SKIPPED:
                 print("SKIP")
                 skipped_files.append(page.title())
@@ -341,11 +341,12 @@ if __name__ == "__main__":
         finally:
             process_time = time() - start_time
             print(f"File time: {process_time:.2f}")
-            if args.limit and files_added == args.limit:
+            if args.limit and files_declared == args.limit:
                 print(f"Hit limit for declarations made: {args.limit}.")
                 break
 
     print(f"Total time: {time() - start_total_time:.2f}")
+    print(f"{files_declared} files declared.")
     if skipped_files:
         print(f"{len(skipped_files)} files skipped:")
         print("\n".join(skipped_files))
