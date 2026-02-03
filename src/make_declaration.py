@@ -16,7 +16,8 @@ from pywikibot.page import Category
 from pywikibot.pagegenerators import (
     CategorizedPageGenerator,
     PagesFromPageidGenerator,
-    PagesFromTitlesGenerator
+    PagesFromTitlesGenerator,
+    PreloadingGenerator
 )
 from pywikibot.site import BaseSite
 from sqlalchemy.exc import PendingRollbackError
@@ -255,11 +256,11 @@ if __name__ == "__main__":
                 sample_size = min(args.sample, len(titles))
                 titles = random.sample(titles, sample_size)
             number_of_files = len(titles)
-            pages = PagesFromTitlesGenerator(titles, site)
+            pages = PreloadingGenerator(PagesFromTitlesGenerator(titles, site))
         batch_name = f"batch:{Path(list_file).stem}"
     elif args.files.startswith("Category:"):
         category = Category(site, args.files)
-        pages = CategorizedPageGenerator(category, True)
+        pages = PreloadingGenerator(CategorizedPageGenerator(category, True))
         batch_name = f"batch:category-{category.pageid}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
@@ -269,10 +270,10 @@ if __name__ == "__main__":
             args.sample
         )
         number_of_files = len(declarations)
-        pages = PagesFromPageidGenerator(
+        pages = PreloadingGenerator(PagesFromPageidGenerator(
             [d.page_id for d in declarations],
             site
-        )
+        ))
         batch_name = args.files
     else:
         raise Exception("No valid list file or tag specified.")
