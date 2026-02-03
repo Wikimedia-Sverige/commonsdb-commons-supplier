@@ -1,8 +1,12 @@
+import logging
+
 from pywikibot import FilePage
 from pywikibot.data.api import Request
 from pywikibot.site._basesite import BaseSite
 
 import allowed_licenses
+
+logger = logging.getLogger(__name__)
 
 
 class MetadataCollector:
@@ -116,6 +120,8 @@ class MetadataCollector:
             allowed_license = self._make_allowed_license(license_url)
             if allowed_license:
                 return allowed_license
+
+        logger.warning(f"No allowed license found in property {license_property}.")
 
     def _make_allowed_license(self, license_url: str) -> str | None:
         for url in allowed_licenses.urls:
