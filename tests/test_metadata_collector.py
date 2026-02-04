@@ -179,6 +179,28 @@ class MetadataCollectorTestCase(TestCase):
         with pytest.raises(MissingMetadataError):
             metadata_collector.get_license()
 
+    def test_get_license_multiple_licenses_some_not_allowed(self):
+        self.FilePage.return_value.pageid = "123"
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
+        self._mock_response(
+            "M123",
+            statements={"P275": [{"id": "Q456"}, {"id": "Q789"}]}
+        )
+        self._mock_response(
+            "Q456",
+            claims={"P856": "https://bad-lisence.org/"}
+        )
+        self._mock_response(
+            "Q789",
+            claims={"P856": "https://creativecommons.org/licenses/by/2.0/"}
+        )
+
+        license = metadata_collector.get_license()
+
+        assert license == "https://creativecommons.org/licenses/by/2.0/"
+
     def test_get_license_multiple_licenses(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
@@ -223,7 +245,7 @@ class MetadataCollectorTestCase(TestCase):
 
         assert license == "https://creativecommons.org/licenses/by/1.0/"
 
-    def test_get_license_partial_match(self):
+    def test_get_license_without_trailing_slash(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
             "Image on Commons.jpeg"
@@ -237,3 +259,18 @@ class MetadataCollectorTestCase(TestCase):
         license = metadata_collector.get_license()
 
         assert license == "https://creativecommons.org/licenses/by/1.0/"
+
+    def test_get_license_deed_suffix(self):
+        self.FilePage.return_value.pageid = "123"
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
+        self._mock_response("M123", statements={"P275": {"id": "Q456"}})
+        self._mock_response(
+            "Q456",
+            claims={"P856": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.de"}
+        )
+
+        license = metadata_collector.get_license()
+
+        assert license == "https://creativecommons.org/licenses/by-sa/3.0/de/"

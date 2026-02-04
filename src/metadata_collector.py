@@ -1,4 +1,5 @@
 import logging
+import re
 
 from pywikibot import FilePage
 from pywikibot.data.api import Request
@@ -124,10 +125,10 @@ class MetadataCollector:
         logger.warning(f"No allowed license found in property {license_property}.")
 
     def _make_allowed_license(self, license_url: str) -> str | None:
-        for url in allowed_licenses.urls:
-            if license_url == url or license_url == url.rstrip("/"):
+        for allowed_url in allowed_licenses.urls:
+            if re.match(fr"{allowed_url.strip("/")}(/(deed\.\w+/?)?)?$", license_url,):
                 # Accept a URL with or without a trailing slash.
-                return url
+                return allowed_url
 
     def _get_property(self, entity: dict, property_name: str):
         properties = (
