@@ -157,12 +157,23 @@ class MetadataCollectorTestCase(TestCase):
 
         assert license == "https://creativecommons.org/licenses/by/1.0/"
 
-    def test_get_public_domain_for_image(self):
+    def test_get_license_public_domain(self):
         self.FilePage.return_value.pageid = "123"
         metadata_collector = self._create_metadata_collector(
             "Image on Commons.jpeg"
         )
         self._mock_response("M123", statements={"P6216": {"id": "Q19652"}})
+
+        license = metadata_collector.get_license()
+
+        assert license == "https://creativecommons.org/publicdomain/mark/1.0/"
+
+    def test_get_license_public_domain_alternative_item(self):
+        self.FilePage.return_value.pageid = "123"
+        metadata_collector = self._create_metadata_collector(
+            "Image on Commons.jpeg"
+        )
+        self._mock_response("M123", statements={"P6216": {"id": "Q88088423"}})
 
         license = metadata_collector.get_license()
 

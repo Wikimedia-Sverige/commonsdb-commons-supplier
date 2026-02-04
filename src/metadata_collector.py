@@ -101,7 +101,11 @@ class MetadataCollector:
         copyright_status = self._get_property(item, "P6216")
         if copyright_status:
             copyright_item = copyright_status[0].get("id")
+            # Q19652 = "public domain"
             if copyright_item == "Q19652":
+                return "https://creativecommons.org/publicdomain/mark/1.0/"
+            # Q88088423 = "copyrighted, dedicated to the public domain by copyright holder"
+            elif copyright_item == "Q88088423":
                 return "https://creativecommons.org/publicdomain/mark/1.0/"
 
         # P275 = "copyright license"
