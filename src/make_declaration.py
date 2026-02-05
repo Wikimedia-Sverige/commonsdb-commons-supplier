@@ -265,9 +265,11 @@ if __name__ == "__main__":
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
         logger.info(f"Reading file list from journal tag: '{files_tag}'.")
+        only_not_declared = not args.update
         declarations = declaration_journal.get_declarations(
             files_tag,
-            args.sample
+            args.sample,
+            only_not_declared=only_not_declared
         )
         number_of_files = len(declarations)
         pages = PreloadingGenerator(PagesFromPageidGenerator(

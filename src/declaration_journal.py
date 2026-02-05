@@ -126,13 +126,16 @@ class DeclarationJournal:
     def get_declarations(
         self,
         tag: str | None = None,
-        sample: int | None = None
+        sample: int | None = None,
+        only_not_declared: bool = False
     ) -> Sequence[Declaration]:
         statement = select(Declaration)
         if sample:
             statement = statement.order_by(func.rand()).limit(sample)
         if tag is not None:
             statement = statement.join(Declaration.tags.and_(Tag.label == tag))
+        if only_not_declared:
+            statement = statement.where(Declaration.cid.is_(None))
 
         declarations = self._session.scalars(statement).all()
         return declarations
