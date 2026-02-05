@@ -36,6 +36,7 @@ DECLARED = "DECLARED"
 FAILED = "FAILED"
 ONLY_ISCC = "ONLY_ISCC"
 SKIPPED = "SKIPPED"
+PREPARED = "PREPARED"
 
 
 class File:
@@ -43,11 +44,13 @@ class File:
         self,
         journal: DeclarationJournal,
         page: FilePage,
+        tags: set[str],
         metadata_collector: MetadataCollector,
         api_connector: DeclarationApiConnector
     ):
         self._journal = journal
         self._page = page
+        self._tags = tags
         self._metadata_collector = metadata_collector
         self._api_connector = api_connector
 
@@ -69,13 +72,20 @@ class File:
         return self._declaration is not None \
             and self._declaration.cid is not None
 
-    def create(self, tags: set[str]):
+    def prepare(self):
+        self._declaration = self._journal.add_declaration(
+            self._tags,
+            page_id=self._page.pageid,
+            revision_id=self._page.latest_revision_id
+        )
+
+    def create(self):
         self._download_file()
         iscc_time = self._generate_iscc()
         self._generate_tumbnail()
 
         self._declaration = self._journal.add_declaration(
-            tags,
+            self._tags,
             page_id=self._page.pageid,
             revision_id=self._page.latest_revision_id,
             image_hash=self._page.latest_file_info.sha1,
@@ -180,17 +190,23 @@ def process_file(
     journal: DeclarationJournal,
     api_connector: DeclarationApiConnector,
     site: BaseSite,
-    batch_name: str
+    batch_name: str,
+    prepare: bool = False
 ) -> str:
     logger.info(f"Processing '{page.title()}'.")
 
     metadata_collector = MetadataCollector(site, page)
 
-    file = File(journal, page, metadata_collector, api_connector)
     tags = set(args.tag)
     tags.add(batch_name)
+    file = File(journal, page, tags, metadata_collector, api_connector)
+
     if not file.is_in_journal():
-        file.create(tags)
+        if prepare:
+            file.prepare()
+            return PREPARED
+
+        file.create()
     else:
         if file.is_in_registry() and not args.update:
             logger.info("Skipping file already in registry.")
@@ -226,6 +242,7 @@ if __name__ == "__main__":
     parser.add_argument("--limit", "-l", type=int)
     parser.add_argument("--update", "-u", action="store_true")
     parser.add_argument("--sample", "-s", type=int)
+    parser.add_argument("--prepare", "-p", action="store_true")
     parser.add_argument("files")
     args = parser.parse_args()
 
@@ -317,7 +334,8 @@ if __name__ == "__main__":
                 declaration_journal,
                 api_connector,
                 site,
-                batch_name
+                batch_name,
+                args.prepare
             )
             if process_result == DECLARED:
                 files_declared += 1
