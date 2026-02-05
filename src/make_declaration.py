@@ -277,7 +277,7 @@ if __name__ == "__main__":
         batch_name = f"batch:{Path(list_file).stem}"
     elif args.files.startswith("Category:"):
         category = Category(site, args.files)
-        pages = PreloadingGenerator(CategorizedPageGenerator(category, True))
+        pages = PreloadingGenerator(CategorizedPageGenerator(category, 100))
         batch_name = f"batch:category-{category.pageid}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
