@@ -98,9 +98,9 @@ class MetadataCollector:
 
     def _get_license_for_item(self, item) -> str | None:
         # P6216 = "copyright status"
-        copyright_status = self._get_property(item, "P6216")
-        if copyright_status:
-            copyright_item = copyright_status[0].get("id")
+        copyright_statuses = self._get_property(item, "P6216")
+        for status in copyright_statuses:
+            copyright_item = status.get("id")
             # Q19652 = "public domain"
             if copyright_item == "Q19652":
                 return "https://creativecommons.org/publicdomain/mark/1.0/"
