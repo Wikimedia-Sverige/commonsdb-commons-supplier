@@ -2,7 +2,6 @@ import base64
 import json
 import logging
 import subprocess
-from tempfile import NamedTemporaryFile
 from time import sleep, time
 from types import SimpleNamespace
 
@@ -90,14 +89,14 @@ class DeclarationApiConnector:
         cdbSignature = self._get_signature(commons_db_metadata)
         data = {
             "signature": signature,
-            "tsaSignature": self._get_tsa(signature),
+            "tsaSignature": self._get_tsa(signature, "tsa"),
             "declarationMetadata": {
                 "publicMetadata": public_metadata,
                 "commonsDbRegistry": commons_db_metadata
             },
             "commonsDbRegistrySignature": cdbSignature,
             "commonsDbRegistryTsaSignature":
-                self._get_tsa(cdbSignature)
+                self._get_tsa(cdbSignature, "commons-db-tsa")
         }
         headers = {
             "User-Agent": "commonsdb-commons-supplier/0.1.5",
@@ -163,37 +162,41 @@ class DeclarationApiConnector:
         )
         return signature
 
-    def _get_tsa(self, data: str) -> dict:
+    def _get_tsa(self, data: str, name: str) -> dict:
         # TODO: Do this without having to juggle files.
-        with (NamedTemporaryFile("w") as data_file,
-              NamedTemporaryFile("rb") as tsq_file):
+        with open(f"{name}.txt", "w") as data_file:
             data_file.write(data)
 
-            # TODO: Is there a library that does this instead?
-            openssl_command = [
-                "openssl",
-                "ts",
-                "-query",
-                "-data",
-                data_file.name,
-                "-no_nonce",
-                "-sha512",
-                "-cert",
-                "-out",
-                tsq_file.name
-            ]
-            subprocess.run(openssl_command)
+        # TODO: Is there a library that does this instead?
+        openssl_command = [
+            "openssl",
+            "ts",
+            "-query",
+            "-data",
+            f"{name}.txt",
+            "-no_nonce",
+            "-sha512",
+            "-cert",
+            "-out",
+            f"{name}.tsq"
+        ]
+        subprocess.run(openssl_command)
 
-            headers = {"Content-Type": "application/timestamp-query"}
+        headers = {"Content-Type": "application/timestamp-query"}
+        with open(f"{name}.tsq", "rb") as tsq_file:
             tsq = tsq_file.read()
-            tsq_b64 = base64.b64encode(tsq).decode()
-            r = requests.post(
-                "https://freetsa.org/tsr",
-                data=tsq,
-                headers=headers
-            )
-            tsr = r.content
-            tsr_b64 = base64.b64encode(tsr).decode()
+        tsq_b64 = base64.b64encode(tsq).decode()
+        r = requests.post(
+            "https://freetsa.org/tsr",
+            data=tsq,
+            headers=headers
+        )
+        tsr = r.content
+        tsr_b64 = base64.b64encode(tsr).decode()
+
+        # Save to file if you want to verify easily.
+        with open(f"{name}.tsr", "wb") as tsr_file:
+            tsr_file.write(r.content)
 
         return {"tsq": tsq_b64, "tsr": tsr_b64}
 
