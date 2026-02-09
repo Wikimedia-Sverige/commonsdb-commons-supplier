@@ -99,7 +99,7 @@ class DeclarationApiConnector:
                 self._get_tsa(cdbSignature, "commons-db-tsa")
         }
         headers = {
-            "User-Agent": "commonsdb-commons-supplier/0.1.7",
+            "User-Agent": "commonsdb-commons-supplier/0.1.8",
             "Authorization": f"Bearer {self._api_key}",
         }
         logger.info(f"Sending request to '{self._api_endpoint}'.")
