@@ -4,6 +4,9 @@
 # Log files
 *.log
 
+# Files created during execution
+tmp/
+
 # Python
 ## Byte-compiled / optimized / DLL files
 __pycache__/

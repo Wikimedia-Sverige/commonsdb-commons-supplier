@@ -164,7 +164,7 @@ class DeclarationApiConnector:
 
     def _get_tsa(self, data: str, name: str) -> dict:
         # TODO: Do this without having to juggle files.
-        with open(f"{name}.txt", "w") as data_file:
+        with open(f"tmp/{name}.txt", "w") as data_file:
             data_file.write(data)
 
         # TODO: Is there a library that does this instead?
@@ -173,17 +173,17 @@ class DeclarationApiConnector:
             "ts",
             "-query",
             "-data",
-            f"{name}.txt",
+            f"tmp/{name}.txt",
             "-no_nonce",
             "-sha512",
             "-cert",
             "-out",
-            f"{name}.tsq"
+            f"tmp/{name}.tsq"
         ]
         subprocess.run(openssl_command)
 
         headers = {"Content-Type": "application/timestamp-query"}
-        with open(f"{name}.tsq", "rb") as tsq_file:
+        with open(f"tmp/{name}.tsq", "rb") as tsq_file:
             tsq = tsq_file.read()
         tsq_b64 = base64.b64encode(tsq).decode()
         r = requests.post(
@@ -195,7 +195,7 @@ class DeclarationApiConnector:
         tsr_b64 = base64.b64encode(tsr).decode()
 
         # Save to file if you want to verify easily.
-        with open(f"{name}.tsr", "wb") as tsr_file:
+        with open(f"tmp/{name}.tsr", "wb") as tsr_file:
             tsr_file.write(r.content)
 
         return {"tsq": tsq_b64, "tsr": tsr_b64}
