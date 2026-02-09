@@ -208,6 +208,10 @@ def process_file(
 
         file.create()
     else:
+        if prepare:
+            logger.info("Skipping file already in journal.")
+            return SKIPPED
+
         if file.is_in_registry() and not args.update:
             logger.info("Skipping file already in registry.")
             return SKIPPED
@@ -243,6 +247,7 @@ if __name__ == "__main__":
     parser.add_argument("--update", "-u", action="store_true")
     parser.add_argument("--sample", "-s", type=int)
     parser.add_argument("--prepare", "-p", action="store_true")
+    parser.add_argument("--recurse-categories", "-c", action="store_true")
     parser.add_argument("files")
     args = parser.parse_args()
 
@@ -277,7 +282,11 @@ if __name__ == "__main__":
         batch_name = f"batch:{Path(list_file).stem}"
     elif args.files.startswith("Category:"):
         category = Category(site, args.files)
-        pages = PreloadingGenerator(CategorizedPageGenerator(category, 100))
+        category_depth = 100 if args.recurse_categories else 0
+        pages = PreloadingGenerator(CategorizedPageGenerator(
+            category,
+            category_depth
+        ))
         batch_name = f"batch:category-{category.pageid}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
