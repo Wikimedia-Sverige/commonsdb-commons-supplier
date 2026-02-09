@@ -348,13 +348,9 @@ if __name__ == "__main__":
             error_files.append(page.title())
 
             if type(e) is PendingRollbackError:
-                # Once this exception occurs all attempts to read from the
-                # database fail.
-                # TODO: Figure out how to handle these errors if possible.
-                logger.exception(
-                    "Don't know how to handle this error. Stopping run.")
-                breaking_error = True
-                break
+                logger.error("Rolling back session due to error.")
+                logger.exception(e)
+                declaration_journal.rollback_session()
 
             if args.quit_on_error:
                 break

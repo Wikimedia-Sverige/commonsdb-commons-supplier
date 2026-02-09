@@ -162,6 +162,9 @@ class DeclarationJournal:
 
         return tag is not None
 
+    def rollback_session(self):
+        self._session.rollback()
+
 
 def create_journal(database_url: str, test: bool = True) -> DeclarationJournal:
     engine = create_engine(database_url)
