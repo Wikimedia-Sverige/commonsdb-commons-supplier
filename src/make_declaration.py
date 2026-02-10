@@ -14,7 +14,6 @@ from dotenv import load_dotenv
 from pywikibot import FilePage, Site
 from pywikibot.page import Category
 from pywikibot.pagegenerators import (
-    CategorizedPageGenerator,
     PagesFromPageidGenerator,
     PagesFromTitlesGenerator,
     PreloadingGenerator
@@ -283,10 +282,10 @@ if __name__ == "__main__":
     elif args.files.startswith("Category:"):
         category = Category(site, args.files)
         category_depth = 100 if args.recurse_categories else 0
-        pages = PreloadingGenerator(CategorizedPageGenerator(
-            category,
-            category_depth
-        ))
+        pages = category.members(
+            recurse=category_depth,  # pyright: ignore[reportArgumentType]
+            member_type="file"
+        )
         batch_name = f"batch:category-{category.pageid}"
     elif declaration_journal.tag_exists(args.files):
         files_tag = args.files
@@ -304,7 +303,7 @@ if __name__ == "__main__":
         ))
         batch_name = args.files
     else:
-        raise Exception("No valid list file or tag specified.")
+        raise Exception("No valid list file, tag or category specified.")
 
     start_total_time = time()
     error_files = []
