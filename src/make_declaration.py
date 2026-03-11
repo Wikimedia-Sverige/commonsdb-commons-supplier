@@ -10,6 +10,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import time
 
+import urllib3
 from dotenv import load_dotenv
 from pywikibot import FilePage, Site
 from pywikibot.page import Category
@@ -226,9 +227,12 @@ def process_file(
         return FAILED
 
 
-def get_os_env(name) -> str:
+def get_os_env(name: str, optional: bool = False) -> str:
     value = os.getenv(name)
     if value is None:
+        if optional:
+            return ""
+
         raise Exception(f"Required environment variable {name} not set.")
 
     return value
@@ -264,7 +268,11 @@ if __name__ == "__main__":
     private_key_path = get_os_env("PRIVATE_KEY_FILE")
     public_key_path = get_os_env("PUBLIC_KEY_FILE")
     declaration_journal_url = get_os_env("DECLARATION_JOURNAL_URL")
+    tsa_url = get_os_env("TSA_URL")
+    tsa_skip_verify = bool(get_os_env("TSA_SKIP_VERIFY", True))
 
+    if tsa_skip_verify:
+        urllib3.disable_warnings()
     declaration_journal = create_journal(declaration_journal_url)
     site = Site("commons")
     number_of_files = None
@@ -319,6 +327,8 @@ if __name__ == "__main__":
         member_credentials_path,
         private_key_path,
         public_key_path,
+        tsa_url,
+        tsa_skip_verify,
         args.rate_limit
     )
     if number_of_files:

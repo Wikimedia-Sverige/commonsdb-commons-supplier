@@ -21,6 +21,8 @@ class DeclarationApiConnector:
         member_credentials_path: str,
         private_key_path: str,
         public_key_path: str,
+        tsa_url: str,
+        tsa_skip_verify: bool = False,
         rate_limit: float = 0
     ):
         self._dry = dry
@@ -31,6 +33,8 @@ class DeclarationApiConnector:
         self._api_endpoint = api_endpoint
         self._api_key = api_key
         self._rate_limit = rate_limit
+        self._tsa_url = tsa_url
+        self._tsa_skip_verify = tsa_skip_verify
 
         self._last_request_time = None
 
@@ -187,9 +191,10 @@ class DeclarationApiConnector:
             tsq = tsq_file.read()
         tsq_b64 = base64.b64encode(tsq).decode()
         r = requests.post(
-            "https://freetsa.org/tsr",
+            self._tsa_url,
             data=tsq,
-            headers=headers
+            headers=headers,
+            verify=not self._tsa_skip_verify
         )
         tsr = r.content
         tsr_b64 = base64.b64encode(tsr).decode()

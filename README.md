@@ -17,12 +17,14 @@ Run src/make_declaration.py to process files and make requests to the declaratio
 Environment variables are used as config. If a file named .env exists variables specified there will be used.
 
 ```
-API_ENDPOINT=<url to the declaration API endpoint>
+API_ENDPOINT=<URL to the declaration API endpoint>
 API_KEY=<key for the declaration API>
 MEMBER_CREDENTIALS_FILE=<path to credential files used by the declaration api>
 PRIVATE_KEY_FILE=<path to the private key used to generate signatures for the declaration api>
 PUBLIC_KEY_FILE=<path to the public key used to generate signatures for the declaration api>
 DECLARATION_JOURNAL_URL=<URL to the database used by the declaration journal, for more info see https://docs.sqlalchemy.org/en/20/core/engines.html#database-urls>
+TSA_URL=<URL to the TSA service>
+TSA_SKIP_VERIFY=<set to skip HTTPS verification of the TSA service>
 ```
 
 ## Development
