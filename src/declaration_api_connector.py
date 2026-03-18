@@ -130,7 +130,7 @@ class DeclarationApiConnector:
             response.ok = True
         else:
             response = requests.post(
-                self._api_endpoint, json=data, headers=headers)
+                self._api_endpoint, json=data, headers=headers, timeout=5)
         logger.debug(f"Received response: {response.text}")
 
         response_content = response.json()
@@ -194,6 +194,7 @@ class DeclarationApiConnector:
             self._tsa_url,
             data=tsq,
             headers=headers,
+            timeout=5,
             verify=not self._tsa_skip_verify
         )
         tsr = r.content
