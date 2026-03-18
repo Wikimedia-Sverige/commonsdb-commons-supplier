@@ -1,6 +1,6 @@
 # commonsdb-commons-supplier
 
-Version: 0.1.10
+Version: 0.1.11
 
 ## Requirements
 
