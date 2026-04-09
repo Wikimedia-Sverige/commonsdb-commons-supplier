@@ -2,7 +2,9 @@ import logging
 from tempfile import TemporaryDirectory
 from time import time
 
+import pywikibot
 from pywikibot import FilePage
+from pywikibot.data import api
 
 from declaration_api_connector import DeclarationApiConnector
 from declaration_journal import DeclarationJournal
@@ -36,9 +38,24 @@ class File:
         self._file_width: int | None = None
         self._file_height: int | None = None
         self._download_time: float | None = None
-
         self._storage = TemporaryDirectory()
         self._path: str | None = None
+
+        # Mostly copied from APISite.loadimageinfo()
+        args = {
+            'titles': self._page.title(with_section=False),
+            'iiprop': pywikibot.site._IIPROP
+        }
+        args['total'] = 1
+        args['iiprop'] += ('extmetadata', )
+        query = self._page.site._generator(
+            api.PropertyGenerator,
+            type_arg='imageinfo',
+            **args
+        )
+        query = self._page.site._update_page(page, query, verify_imageinfo=True)
+        self._page.site.loadimageinfo(self._page)
+        self._page.extmetadata = self._page.latest_file_info.extmetadata
 
     def is_in_journal(self) -> bool:
         return self._declaration is not None
@@ -135,12 +152,14 @@ class File:
         if self._declaration.iscc is None:
             raise Exception("ISCC required.")
 
-        logger.info("Getting location.")
+        logger.debug("Getting location.")
         location = self._metadata_collector.get_url()
-        logger.info("Getting name.")
+        logger.debug("Getting name.")
         name = self._metadata_collector.get_name()
-        logger.info("Getting license.")
+        logger.debug("Getting license.")
         license_url = self._metadata_collector.get_license()
+        logger.debug("Getting creator.")
+        self._extra_public_metadata["creator"] = self._metadata_collector.get_creator()
         if self._declaration.cid is not None:
             self._extra_public_metadata["supersedes"] = (
                 self._declaration.cid

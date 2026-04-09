@@ -1,6 +1,7 @@
 import logging
 import re
 
+from bs4 import BeautifulSoup
 from pywikibot import FilePage
 from pywikibot.data.api import Request
 from pywikibot.site._basesite import BaseSite
@@ -148,6 +149,15 @@ class MetadataCollector:
             for p in properties
         ]
         return values
+
+    def get_creator(self):
+        artist = self._page.extmetadata.get("Artist", {}).get("value")
+        if not artist:
+            return None
+
+        soup = BeautifulSoup(artist, "html.parser")
+        artist = soup.get_text().strip()
+        return artist
 
 
 class MissingMetadataError(Exception):
