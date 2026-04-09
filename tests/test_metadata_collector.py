@@ -299,3 +299,66 @@ class MetadataCollectorTestCase(TestCase):
         license = metadata_collector.get_license()
 
         assert license == "https://creativecommons.org/licenses/by-sa/3.0/de/"
+
+    def test_get_creator(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        page.extmetadata = {
+            "Artist": {
+                "value": "Creator"
+            }
+        }
+        metadata_collector = MetadataCollector(site, page)
+
+        creator = metadata_collector.get_creator()
+
+        assert creator == "Creator"
+
+    def test_get_creator_wrapped_in_html(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        page.extmetadata = {
+            "Artist": {
+                "value": '<a href="//commons.wikimedia.org/w/index.php?title=User:Creator&amp;action=edit&amp;redlink=1" class="new" title="User:Creator (page does not exist)">Creator</a>'  # noqa: 501
+            }
+        }
+        metadata_collector = MetadataCollector(site, page)
+
+        creator = metadata_collector.get_creator()
+
+        assert creator == "Creator"
+
+    def test_get_creator_includes_html(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        page.extmetadata = {
+            "Artist": {
+                "value": 'No machine-readable author provided. <a href="//commons.wikimedia.org/w/index.php?title=User:Creator&amp;action=edit&amp;redlink=1" class="new" title="User:Creator (page does not exist)">Creator</a> assumed (based on copyright claims).'  # noqa: 501
+            }
+        }
+        metadata_collector = MetadataCollector(site, page)
+
+        creator = metadata_collector.get_creator()
+
+        expected_creator = "No machine-readable author provided. Creator assumed (based on copyright claims)."  # noqa: 501
+        assert creator == expected_creator
+
+    def test_get_creator_empty_string(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        page.extmetadata = {"Artist": {"value": ""}}
+        metadata_collector = MetadataCollector(site, page)
+
+        creator = metadata_collector.get_creator()
+
+        assert creator is None
+
+    def test_get_creator_missing(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        page.extmetadata = {}
+        metadata_collector = MetadataCollector(site, page)
+
+        creator = metadata_collector.get_creator()
+
+        assert creator is None
