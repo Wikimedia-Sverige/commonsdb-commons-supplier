@@ -41,7 +41,13 @@ class File:
         self._storage = TemporaryDirectory()
         self._path: str | None = None
 
-        # Mostly copied from APISite.loadimageinfo()
+        self._add_extmetadata()
+
+    def _add_extmetadata(self):
+        """Add non-default metadata for the file
+
+        This is mostly copied from APISite.loadimageinfo().
+        """
         args = {
             'titles': self._page.title(with_section=False),
             'iiprop': pywikibot.site._IIPROP
@@ -53,7 +59,7 @@ class File:
             type_arg='imageinfo',
             **args
         )
-        query = self._page.site._update_page(page, query, verify_imageinfo=True)
+        query = self._page.site._update_page(self._page, query, verify_imageinfo=True)
         self._page.site.loadimageinfo(self._page)
         self._page.extmetadata = self._page.latest_file_info.extmetadata
 
@@ -158,8 +164,9 @@ class File:
         name = self._metadata_collector.get_name()
         logger.debug("Getting license.")
         license_url = self._metadata_collector.get_license()
+        extra_supplier_metadata = {}
         logger.debug("Getting creator.")
-        self._extra_public_metadata["creator"] = self._metadata_collector.get_creator()
+        extra_supplier_metadata["creator"] = self._metadata_collector.get_creator()
         if self._declaration.cid is not None:
             self._extra_public_metadata["supersedes"] = (
                 self._declaration.cid
@@ -169,7 +176,8 @@ class File:
             self._declaration.iscc,
             location,
             license_url,
-            self._extra_public_metadata
+            self._extra_public_metadata,
+            extra_supplier_metadata
         )
         if cid is None:
             return False

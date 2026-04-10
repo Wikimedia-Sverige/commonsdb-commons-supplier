@@ -58,13 +58,19 @@ class DeclarationApiConnector:
         iscc: str,
         location: str,
         rights_statement: str,
-        extra_public_metadata: dict
+        extra_public_metadata: dict,
+        extra_supplier_data: dict
     ) -> str | None:
         if self._member_credentials is None:
             raise Exception("Invalid memeber credentials.")
 
         # Epoch time in milliseconds.
         timestamp = int(time() * 1000)
+        supplier_data = {
+            "location": location,
+            "rightsStatement": rights_statement,
+        }
+        supplier_data.update(extra_supplier_data)
         public_metadata = {
             "$schema": "https://w3id.org/commonsdb/schema/0.2.0.json",
             "@context": "https://w3id.org/commonsdb/context/0.2.0.json",
@@ -75,10 +81,7 @@ class DeclarationApiConnector:
             "version": 1,
             "timestamp": timestamp,
             "credentials": [self._member_credentials],
-            "supplierData": {
-                "location": location,
-                "rightsStatement": rights_statement,
-            }
+            "supplierData": supplier_data
         }
         public_metadata.update(extra_public_metadata)
         proof = self._member_credentials.get("proof").get("jwt")
