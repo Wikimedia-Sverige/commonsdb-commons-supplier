@@ -155,8 +155,8 @@ class File:
         if self._declaration is None:
             raise Exception("Declaration required.")
 
-        if self._declaration.iscc is None:
-            raise Exception("ISCC required.")
+        # if self._declaration.iscc is None:
+        #     raise Exception("ISCC required.")
 
         logger.debug("Getting location.")
         location = self._metadata_collector.get_url()
@@ -167,6 +167,9 @@ class File:
         extra_supplier_metadata = {}
         logger.debug("Getting creator.")
         extra_supplier_metadata["creator"] = self._metadata_collector.get_creator()
+        logger.debug("Getting creation date.")
+        extra_supplier_metadata["creationDate"] = self._metadata_collector.get_creation_date()
+        return False
         if self._declaration.cid is not None:
             self._extra_public_metadata["supersedes"] = (
                 self._declaration.cid

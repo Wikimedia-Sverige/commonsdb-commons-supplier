@@ -362,3 +362,17 @@ class MetadataCollectorTestCase(TestCase):
         creator = metadata_collector.get_creator()
 
         assert creator is None
+
+    def test_get_creation_date(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        page.extmetadata = {
+            "DateTimeOriginal": {
+                "value": "Creator"
+            }
+        }
+        metadata_collector = MetadataCollector(site, page)
+
+        creation_date = metadata_collector.get_creation_date()
+
+        assert creation_date == ""
