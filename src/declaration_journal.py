@@ -1,6 +1,5 @@
 import inspect
 import logging
-import subprocess
 from datetime import datetime
 from typing import Optional, Sequence, Set
 
@@ -78,15 +77,9 @@ class Tag(Base):
 
 
 class DeclarationJournal:
-    def __init__(self, engine: Engine, session: Session, test: bool = True):
+    def __init__(self, engine: Engine, session: Session):
         self._session = session
         Base.metadata.create_all(engine)
-        if not test:
-            # Make sure that the database is up to date.
-            logger.info("Updating database if needed.")
-            # Run as subprocess because alembic.command breaks logging.
-            p = subprocess.run(["alembic", "upgrade", "head"])
-            p.check_returncode()
 
     def add_declaration(self, tag_labels: Set[str], **kwargs) -> Declaration:
         tags = set()
@@ -166,10 +159,10 @@ class DeclarationJournal:
         self._session.rollback()
 
 
-def create_journal(database_url: str, test: bool = True) -> DeclarationJournal:
+def create_journal(database_url: str) -> DeclarationJournal:
     engine = create_engine(database_url)
     with Session(engine, expire_on_commit=False) as session, session.begin():
-        journal = DeclarationJournal(engine, session, test)
+        journal = DeclarationJournal(engine, session)
 
     return journal
 
