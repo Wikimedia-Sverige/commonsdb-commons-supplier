@@ -43,8 +43,8 @@ class Declaration(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     created_timestamp: Mapped[datetime]
     updated_timestamp: Mapped[datetime]
-    page_id: Mapped[int]
-    revision_id: Mapped[int]
+    page_id: Mapped[int] = mapped_column(unique=True)
+    revision_id: Mapped[int] = mapped_column(unique=True)
     image_hash: Mapped[Optional[str]] = mapped_column(String(41))
     file_size: Mapped[Optional[int]]
     width: Mapped[Optional[int]]
