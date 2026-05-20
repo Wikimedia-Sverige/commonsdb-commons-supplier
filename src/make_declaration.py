@@ -45,8 +45,6 @@ def process_file(
     batch_name: str,
     prepare: bool = False
 ) -> str:
-    logger.info(f"Processing '{page.title()}'.")
-
     metadata_collector = MetadataCollector(site, page)
 
     tags = set(args.tag)
@@ -186,6 +184,8 @@ if __name__ == "__main__":
     if number_of_files:
         print(f"Processing {number_of_files} files.")
     for i, page in enumerate(pages):
+        logger.info(f"Starting on file: '{page.title()}'.")
+
         if number_of_files:
             progress = f"{i + 1}/{number_of_files}"
         else:
@@ -226,6 +226,7 @@ if __name__ == "__main__":
                 break
 
         finally:
+            logger.info(f"Done with file '{page.title()}'.")
             process_time = time() - start_time
             print(f"File time: {process_time:.2f}")
             if args.limit and files_declared == args.limit:
