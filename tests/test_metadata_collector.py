@@ -368,11 +368,11 @@ class MetadataCollectorTestCase(TestCase):
         page = self.FilePage(site, "Image on Commons.jpeg")
         page.extmetadata = {
             "DateTimeOriginal": {
-                "value": "Creator"
+                "value": "2024-08-03 20:05:18"
             }
         }
         metadata_collector = MetadataCollector(site, page)
 
         creation_date = metadata_collector.get_creation_date()
 
-        assert creation_date == ""
+        assert creation_date == "2024-08-03 20:05:18"

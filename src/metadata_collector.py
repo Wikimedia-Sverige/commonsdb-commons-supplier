@@ -161,14 +161,11 @@ class MetadataCollector:
 
     def get_creation_date(self):
         date = self._page.extmetadata.get("DateTimeOriginal", {}).get("value")
-        print("DATE", date)
-        return None
-        if not artist:
+        # print("DATE", date)
+        if not date:
             return None
 
-        soup = BeautifulSoup(artist, "html.parser")
-        artist = soup.get_text().strip()
-        return artist
+        return date
 
 
 class MissingMetadataError(Exception):
