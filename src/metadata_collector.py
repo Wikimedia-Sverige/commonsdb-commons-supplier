@@ -1,3 +1,4 @@
+from datetime import datetime, date
 import logging
 import re
 
@@ -159,13 +160,22 @@ class MetadataCollector:
         artist = soup.get_text().strip()
         return artist
 
-    def get_creation_date(self):
-        date = self._page.extmetadata.get("DateTimeOriginal", {}).get("value")
+    def get_creation_date(self) -> str | None:
+        date_string = self._page.extmetadata.get("DateTimeOriginal", {}).get("value")
         # print("DATE", date)
-        if not date:
+        if not date_string:
             return None
 
-        return date
+        # timestamp_re = re.compile(r"")
+        # re.match()
+        try:
+            date_ = date.fromisoformat(date_string)
+            # date_ = datetime.fromisoformat(date_string)
+        except Exception:
+            return None
+
+        print(date_)
+        return date_.isoformat()
 
 
 class MissingMetadataError(Exception):
