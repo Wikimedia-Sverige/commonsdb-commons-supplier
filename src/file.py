@@ -167,6 +167,8 @@ class File:
         extra_supplier_metadata = {}
         logger.debug("Getting creator.")
         extra_supplier_metadata["creator"] = self._metadata_collector.get_creator()
+        logger.debug("Getting creation date.")
+        extra_supplier_metadata["creationDate"] = self._metadata_collector.get_creation_date()
         if self._declaration.cid is not None:
             self._extra_public_metadata["supersedes"] = (
                 self._declaration.cid
