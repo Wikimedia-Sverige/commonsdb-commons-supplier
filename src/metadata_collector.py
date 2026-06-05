@@ -162,20 +162,31 @@ class MetadataCollector:
 
     def get_creation_date(self) -> str | None:
         date_string = self._page.extmetadata.get("DateTimeOriginal", {}).get("value")
-        # print("DATE", date)
+        print("IN:", date_string)
         if not date_string:
             return None
 
-        # timestamp_re = re.compile(r"")
-        # re.match()
         try:
-            date_ = date.fromisoformat(date_string)
-            # date_ = datetime.fromisoformat(date_string)
+            creation_date = datetime.fromisoformat(date_string)
         except Exception:
-            return None
+            creation_date = None
 
-        print(date_)
-        return date_.isoformat()
+        if creation_date is not None:
+            creation_date_string = creation_date.isoformat()
+            # isoformat() adds precision to the date if fields where missing
+            # so we have to cut them off.
+            original_string_length = len(date_string)
+            creation_date_string = creation_date_string[:original_string_length]
+        else:
+            if re.match(r"\d{4}$", date_string) and int(date_string) >= 1583:
+                # Just check if it's a valid year. The functions converting
+                # from strings don't work if parts are missing.
+                creation_date_string = date_string
+            else:
+                return None
+
+        print("OUT:", creation_date_string)
+        return creation_date_string
 
 
 class MissingMetadataError(Exception):

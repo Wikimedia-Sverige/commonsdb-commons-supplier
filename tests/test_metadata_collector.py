@@ -375,7 +375,7 @@ class MetadataCollectorTestCase(TestCase):
 
         creation_date = metadata_collector.get_creation_date()
 
-        assert creation_date == "2024-08-03 20:05:18"
+        assert creation_date == "2024-08-03T20:05:18"
 
     def test_get_creation_date_no_time(self):
         site = self.Site()
@@ -404,6 +404,20 @@ class MetadataCollectorTestCase(TestCase):
         creation_date = metadata_collector.get_creation_date()
 
         assert creation_date == "2024"
+
+    def test_get_creation_date_only_invalid_year(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        page.extmetadata = {
+            "DateTimeOriginal": {
+                "value": "1582"
+            }
+        }
+        metadata_collector = MetadataCollector(site, page)
+
+        creation_date = metadata_collector.get_creation_date()
+
+        assert creation_date is None
 
     def test_get_creation_date_invalid_format(self):
         site = self.Site()
