@@ -13,7 +13,7 @@ class FileFetcher:
         directory: str,
         page: FilePage
     ) -> tuple[str, int, int, int]:
-        filename = page.title(with_ns=False, as_filename=True)
+        filename = page.title(with_ns=False)
         path = f"{directory}/{filename}"
         logger.info(f"Downloading file: '{filename}'")
         success = page.download(path, url_width=330)
