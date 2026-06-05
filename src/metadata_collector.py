@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime
 import logging
 import re
 
@@ -162,7 +162,6 @@ class MetadataCollector:
 
     def get_creation_date(self) -> str | None:
         date_string = self._page.extmetadata.get("DateTimeOriginal", {}).get("value")
-        print("IN:", date_string)
         if not date_string:
             return None
 
@@ -185,7 +184,6 @@ class MetadataCollector:
             else:
                 return None
 
-        print("OUT:", creation_date_string)
         return creation_date_string
 
 

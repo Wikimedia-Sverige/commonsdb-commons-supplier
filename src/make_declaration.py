@@ -68,7 +68,7 @@ def process_file(
             logger.info("Skipping file already in registry.")
             return SKIPPED
 
-        # file.update_declaration()
+        file.update_declaration()
 
     if args.iscc:
         return ONLY_ISCC
