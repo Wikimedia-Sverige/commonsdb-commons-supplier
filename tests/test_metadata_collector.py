@@ -446,3 +446,16 @@ class MetadataCollectorTestCase(TestCase):
         creation_date = metadata_collector.get_creation_date()
 
         assert creation_date is None
+
+    def test_get_pd_rationale(self):
+        print("TEST")
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        template_page = self.FilePage(site, "PD-old-100")
+        template_page.title.return_value = "PD-old-100"
+        page.templates.return_value = [template_page]
+        metadata_collector = MetadataCollector(site, page)
+
+        pd_rational = metadata_collector.get_pd_rationale()
+
+        assert pd_rational == "PMA 100"

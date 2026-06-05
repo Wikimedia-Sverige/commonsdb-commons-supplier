@@ -1,3 +1,4 @@
+from pywikibot.page import Page
 import logging
 import re
 from datetime import datetime
@@ -185,6 +186,14 @@ class MetadataCollector:
                 return None
 
         return creation_date_string
+
+    def get_pd_rationale(self) -> str | None:
+        print(self._page.templates())
+        templates: list[Page] = self._page.templates()
+        for template in templates:
+            print(template.title())
+            if template.title() == "PD-old-100":
+                return "PMA 100"
 
 
 class MissingMetadataError(Exception):

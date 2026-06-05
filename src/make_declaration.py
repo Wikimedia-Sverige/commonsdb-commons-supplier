@@ -51,6 +51,10 @@ def process_file(
     tags.add(batch_name)
     file = File(journal, page, tags, metadata_collector, api_connector)
 
+    pd_rationale = file._metadata_collector.get_pd_rationale()
+    print(pd_rationale)
+    return SKIPPED
+
     if not file.is_in_journal():
         if prepare:
             file.prepare_declaration()
