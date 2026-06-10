@@ -18,6 +18,7 @@ class DeclarationApiConnector:
         dry: bool,
         api_endpoint: str,
         api_key: str,
+        raw_api_key: str,
         member_credentials_path: str,
         private_key_path: str,
         public_key_path: str,
@@ -26,12 +27,12 @@ class DeclarationApiConnector:
         rate_limit: float = 0
     ):
         self._dry = dry
-        self._member_credentials = (self._read_json(member_credentials_path)
-                                    .get("verifiableCredential"))
+        self._member_credentials = self._read_json(member_credentials_path)
         self._private_key = self._read_text(private_key_path)
         self._public_key = self._read_text(public_key_path).encode("utf-8")
         self._api_endpoint = api_endpoint
         self._api_key = api_key
+        self._raw_api_key = raw_api_key
         self._rate_limit = rate_limit
         self._tsa_url = tsa_url
         self._tsa_skip_verify = tsa_skip_verify
@@ -64,6 +65,7 @@ class DeclarationApiConnector:
         if self._member_credentials is None:
             raise Exception("Invalid memeber credentials.")
 
+        declarer_id = self._member_credentials.get("credentialSubject").get("id")
         # Epoch time in milliseconds.
         timestamp = int(time() * 1000)
         supplier_data = {
@@ -74,7 +76,7 @@ class DeclarationApiConnector:
         public_metadata = {
             "$schema": "https://w3id.org/commonsdb/schema/0.2.0.json",
             "@context": "https://w3id.org/commonsdb/context/0.2.0.json",
-            "declarerId": self._member_credentials.get("credentialSubject").get("id"),
+            "declarerId": declarer_id,
             "iscc": iscc,
             "name": name,
             "original": True,
@@ -109,6 +111,10 @@ class DeclarationApiConnector:
             "User-Agent": "commonsdb-commons-supplier/0.1.15",
             "Authorization": f"Bearer {self._api_key}",
         }
+        if self._raw_api_key:
+            headers["x-api-key"] = self._raw_api_key
+            headers["x-declarer-id"] = declarer_id
+
         logger.info(f"Sending request to '{self._api_endpoint}'.")
         logger.debug(f"POST: {json.dumps(data)}")
         if self._rate_limit and self._last_request_time:

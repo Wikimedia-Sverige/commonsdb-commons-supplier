@@ -114,6 +114,7 @@ if __name__ == "__main__":
     load_dotenv()
     api_endpoint = get_os_env("API_ENDPOINT")
     api_key = get_os_env("API_KEY")
+    raw_api_key = get_os_env("RAW_API_KEY", True)
     member_credentials_path = get_os_env("MEMBER_CREDENTIALS_FILE")
     private_key_path = get_os_env("PRIVATE_KEY_FILE")
     public_key_path = get_os_env("PUBLIC_KEY_FILE")
@@ -174,6 +175,7 @@ if __name__ == "__main__":
         args.dry,
         api_endpoint,
         api_key,
+        raw_api_key,
         member_credentials_path,
         private_key_path,
         public_key_path,
