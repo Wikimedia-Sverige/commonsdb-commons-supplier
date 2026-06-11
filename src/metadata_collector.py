@@ -1,4 +1,3 @@
-from pywikibot.page import Page
 import logging
 import re
 from datetime import datetime
@@ -6,6 +5,7 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from pywikibot import FilePage
 from pywikibot.data.api import Request
+from pywikibot.page import Page
 from pywikibot.site._basesite import BaseSite
 
 import allowed_licenses
@@ -189,13 +189,10 @@ class MetadataCollector:
         return creation_date_string
 
     def get_pd_rationale(self) -> str | None:
-        print(self._page.templates())
         templates: list[Page] = self._page.templates()
         for template in templates:
-            print(template.title())
             for wd_id, pd_templates in rationales.items():
                 for pd_template in pd_templates:
-                    print(f"{pd_template} =? {template}")
                     if pd_template == template.title():
                         return wd_id
 
