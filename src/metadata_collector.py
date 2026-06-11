@@ -9,6 +9,7 @@ from pywikibot.data.api import Request
 from pywikibot.site._basesite import BaseSite
 
 import allowed_licenses
+from pd_rationale_map import rationales
 
 logger = logging.getLogger(__name__)
 
@@ -192,8 +193,11 @@ class MetadataCollector:
         templates: list[Page] = self._page.templates()
         for template in templates:
             print(template.title())
-            if template.title() == "PD-old-100":
-                return "PMA 100"
+            for wd_id, pd_templates in rationales.items():
+                for pd_template in pd_templates:
+                    print(f"{pd_template} =? {template}")
+                    if pd_template == template.title():
+                        return wd_id
 
 
 class MissingMetadataError(Exception):
