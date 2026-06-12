@@ -1,8 +1,9 @@
 from unittest import TestCase
-from unittest.mock import PropertyMock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 from pywikibot.exceptions import NoPageError
+from pywikibot.page import FilePage
 
 from metadata_collector import MetadataCollector, MissingMetadataError
 
@@ -446,3 +447,78 @@ class MetadataCollectorTestCase(TestCase):
         creation_date = metadata_collector.get_creation_date()
 
         assert creation_date is None
+
+    def test_get_pd_rationale(self):
+        site = self.Site()
+        page = self.FilePage(site, "Image on Commons.jpeg")
+        template_page = Mock(FilePage)
+        template_page.title.return_value = "Template:PD-old-100"
+        page.templates.return_value = [template_page]
+        metadata_collector = MetadataCollector(site, page)
+
+        pd_rational = metadata_collector.get_pd_rationale()
+
+        assert pd_rational == "Q60332278"
+
+    def test_get_pd_rationale_multiple_templates(self):
+        site = self.Site()
+        page = Mock(FilePage)
+        template_page_1 = Mock(FilePage)
+        template_page_1.title.return_value = "Template:PD-old-100"
+        template_page_2 = Mock(FilePage)
+        template_page_2.title.return_value = "Template:PD-old-80"
+        page.templates.return_value = [template_page_1, template_page_2]
+        metadata_collector = MetadataCollector(site, page)
+
+        pd_rational = metadata_collector.get_pd_rationale()
+
+        assert pd_rational == "Q60332278"
+
+    def test_get_pd_rationale_invalid_and_valid_templates(self):
+        site = self.Site()
+        page = Mock(FilePage)
+        template_page_1 = Mock(FilePage)
+        template_page_1.title.return_value = "Template:Wrong-template"
+        template_page_2 = Mock(FilePage)
+        template_page_2.title.return_value = "Template:PD-old-100"
+        page.templates.return_value = [template_page_1, template_page_2]
+        metadata_collector = MetadataCollector(site, page)
+
+        pd_rational = metadata_collector.get_pd_rationale()
+
+        assert pd_rational == "Q60332278"
+
+    def test_get_pd_rationale_template_with_wildcard(self):
+        site = self.Site()
+        page = Mock(FilePage)
+        template_page = Mock(FilePage)
+        template_page.title.return_value = "Template:PD-USGov-something"
+        page.templates.return_value = [template_page]
+        metadata_collector = MetadataCollector(site, page)
+
+        pd_rational = metadata_collector.get_pd_rationale()
+
+        # Matches "Template:PD-USGov-*"
+        assert pd_rational == "Q60671452"
+
+    def test_get_pd_rationale_invalid_template(self):
+        site = self.Site()
+        page = Mock(FilePage)
+        template_page = Mock(FilePage)
+        template_page.title.return_value = "Template:Wrong-template"
+        page.templates.return_value = [template_page]
+        metadata_collector = MetadataCollector(site, page)
+
+        pd_rational = metadata_collector.get_pd_rationale()
+
+        assert pd_rational is None
+
+    def test_get_pd_rationale_no_templates(self):
+        site = self.Site()
+        page = Mock(FilePage)
+        page.templates.return_value = []
+        metadata_collector = MetadataCollector(site, page)
+
+        pd_rational = metadata_collector.get_pd_rationale()
+
+        assert pd_rational is None

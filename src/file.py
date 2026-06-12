@@ -164,11 +164,21 @@ class File:
         name = self._metadata_collector.get_name()
         logger.debug("Getting license.")
         license_url = self._metadata_collector.get_license()
+
         extra_supplier_metadata = {}
         logger.debug("Getting creator.")
-        extra_supplier_metadata["creator"] = self._metadata_collector.get_creator()
+        creator = self._metadata_collector.get_creator()
+        if creator:
+            extra_supplier_metadata["creator"] = creator
         logger.debug("Getting creation date.")
-        extra_supplier_metadata["creationDate"] = self._metadata_collector.get_creation_date()
+        creation_date = self._metadata_collector.get_creation_date()
+        if creation_date:
+            extra_supplier_metadata["creationDate"] = creation_date
+        logger.debug("Getting PD rationale.")
+        pd_rationale = self._metadata_collector.get_pd_rationale()
+        if pd_rationale:
+            extra_supplier_metadata["pdRationale"] = pd_rationale
+
         if self._declaration.cid is not None:
             self._extra_public_metadata["supersedes"] = (
                 self._declaration.cid

@@ -5,9 +5,11 @@ from datetime import datetime
 from bs4 import BeautifulSoup
 from pywikibot import FilePage
 from pywikibot.data.api import Request
+from pywikibot.page import Page
 from pywikibot.site._basesite import BaseSite
 
 import allowed_licenses
+from pd_rationale_map import rationales
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +187,21 @@ class MetadataCollector:
                 return None
 
         return creation_date_string
+
+    def get_pd_rationale(self) -> str | None:
+        templates: list[Page] = self._page.templates()
+        for template in templates:
+            template_title = template.title().lower()
+            for wd_id, pd_templates in rationales.items():
+                for pd_template in pd_templates:
+                    pd_template_title = f"Template:{pd_template}".lower()
+                    if pd_template.endswith("*"):
+                        template_prefix = pd_template_title[:-1]
+                        if template_title.startswith(template_prefix):
+                            return wd_id
+
+                    elif pd_template_title == template_title.lower():
+                        return wd_id
 
 
 class MissingMetadataError(Exception):
