@@ -199,6 +199,7 @@ class MetadataCollector:
                         template_prefix = pd_template_title[:-1]
                         if template_title.startswith(template_prefix):
                             return wd_id
+
                     elif pd_template_title == template_title.lower():
                         return wd_id
 
