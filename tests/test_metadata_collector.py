@@ -1,9 +1,9 @@
-from pywikibot.page import FilePage
 from unittest import TestCase
-from unittest.mock import PropertyMock, patch, Mock
+from unittest.mock import Mock, PropertyMock, patch
 
 import pytest
 from pywikibot.exceptions import NoPageError
+from pywikibot.page import FilePage
 
 from metadata_collector import MetadataCollector, MissingMetadataError
 
