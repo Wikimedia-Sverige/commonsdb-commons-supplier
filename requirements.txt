@@ -1,4 +1,4 @@
-iscc-sdk==0.8.0
+iscc-sdk==0.9.4
 pywikibot==10.0.0
 python-dotenv==1.2.2
 requests==2.33.0
