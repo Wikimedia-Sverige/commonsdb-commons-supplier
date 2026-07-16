@@ -31,7 +31,7 @@ class Base(DeclarativeBase):
 tag_association = Table(
     "tag_association",
     Base.metadata,
-    Column("declartion_id", ForeignKey("declaration.id"), primary_key=True),
+    Column("declaration_id", ForeignKey("declaration.id"), primary_key=True),
     Column("tag_id", ForeignKey("tag.id"), primary_key=True),
 )
 
