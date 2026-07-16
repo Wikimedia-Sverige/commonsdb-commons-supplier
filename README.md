@@ -6,7 +6,7 @@ Version: 0.1.17
 
 Python 3.12. May work with other versions, but not guaranteed.
 
-`openssl` is required to generat TSA files.
+`openssl` is required to generate TSA files.
 
 ## Running
 
@@ -55,7 +55,7 @@ Module import order is handled by [Isort](https://pycqa.github.io/isort/).
 
 ### CI
 
-Github actions are specified in .github/workflows/python.yml. By deafult Tox will run when code is pushed.
+Github actions are specified in .github/workflows/python.yml. By default Tox will run when code is pushed.
 
 ### Database
 
