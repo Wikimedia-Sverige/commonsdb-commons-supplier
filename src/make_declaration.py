@@ -88,22 +88,81 @@ def get_os_env(name: str, optional: bool = False) -> str:
     return value
 
 
-if __name__ == "__main__":
+def make_arguments() -> Namespace:
     parser = ArgumentParser()
-    parser.add_argument("--dry", "-d", action="store_true")
-    parser.add_argument("--verbose", "-v", action="store_true")
-    parser.add_argument("--iscc", "-i", action="store_true")
-    parser.add_argument("--quit-on-error", "-q", action="store_true")
-    parser.add_argument("--tag", "-t", action="append", default=[])
-    parser.add_argument("--rate-limit", "-r", type=float)
-    parser.add_argument("--limit", "-l", type=int)
-    parser.add_argument("--update", "-u", action="store_true")
-    parser.add_argument("--sample", "-s", type=int)
-    parser.add_argument("--prepare", "-p", action="store_true")
-    parser.add_argument("--recurse-categories", "-c", action="store_true")
+    parser.add_argument(
+        "--dry",
+        "-d",
+        action="store_true",
+        help="Run without making any requests to the registry. Instead a mock response will be generated. Still writes to the journal."
+    )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Log more information."
+    )
+    parser.add_argument(
+        "--iscc",
+        "-i",
+        action="store_true",
+        help="Stop after generating ISCC. No declarations are made."
+    )
+    parser.add_argument(
+        "--quit-on-error",
+        "-q",
+        action="store_true",
+        help="Quit when an error is encountered during file process. Normally moves on to the next file."
+    )
+    parser.add_argument(
+        "--tag",
+        "-t",
+        action="append",
+        default=[],
+        help="Journal tags to add to each declaration in the journal."
+    )
+    parser.add_argument(
+        "--rate-limit",
+        "-r",
+        type=float,
+        help="Rate limit in seconds for requests to the registry API. WARNING: may not be accurate."
+    )
+    parser.add_argument(
+        "--limit",
+        "-l",
+        type=int,
+        help="Quit after making this many successful declarations."
+    )
+    parser.add_argument(
+        "--update",
+        "-u",
+        action="store_true",
+        help="Update declarations that are already in the journal."
+    )
+    parser.add_argument(
+        "--sample",
+        "-s",
+        type=int,
+        help="Pick a random sample of at most this many files to work on."
+    )
+    parser.add_argument(
+        "--prepare",
+        "-p",
+        action="store_true",
+        help="Prepare declarations rather than making them. This adds them to the journal so they can be made later."
+    )
+    parser.add_argument(
+        "--recurse-categories",
+        "-c",
+        action="store_true",
+        help="Process files in subcategories to a depth of at most 100. Only relevant when a category is used as input."
+    )
     parser.add_argument("files")
-    args = parser.parse_args()
+    return parser.parse_args()
 
+
+if __name__ == "__main__":
+    args = make_arguments()
     log_level = logging.DEBUG if args.verbose else logging.INFO
     logging.basicConfig(
         level=log_level,
