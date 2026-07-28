@@ -94,7 +94,8 @@ def make_arguments() -> Namespace:
         "--dry",
         "-d",
         action="store_true",
-        help="Run without making any requests to the registry. Instead a mock response will be generated. Still writes to the journal."
+        help="Run without making any requests to the registry. Instead a mock response will be generated. Still writes to the journal."  # noqa: 501
+
     )
     parser.add_argument(
         "--verbose",
@@ -112,7 +113,7 @@ def make_arguments() -> Namespace:
         "--quit-on-error",
         "-q",
         action="store_true",
-        help="Quit when an error is encountered during file process. Normally moves on to the next file."
+        help="Quit when an error is encountered during file process. Normally moves on to the next file."  # noqa: 501
     )
     parser.add_argument(
         "--tag",
@@ -149,13 +150,13 @@ def make_arguments() -> Namespace:
         "--prepare",
         "-p",
         action="store_true",
-        help="Prepare declarations rather than making them. This adds them to the journal so they can be made later."
+        help="Prepare declarations rather than making them. This adds them to the journal so they can be made later."  # noqa: 501
     )
     parser.add_argument(
         "--recurse-categories",
         "-c",
         action="store_true",
-        help="Process files in subcategories to a depth of at most 100. Only relevant when a category is used as input."
+        help="Process files in subcategories to a depth of at most 100. Only relevant when a category is used as input."  # noqa: 501
     )
     parser.add_argument("files")
     return parser.parse_args()
