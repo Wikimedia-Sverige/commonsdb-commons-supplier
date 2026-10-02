@@ -2,7 +2,7 @@ iscc-sdk==0.9.4
 pywikibot==10.0.0
 python-dotenv==1.2.2
 requests==2.33.0
-PyJWT[crypto]==2.13.0
+PyJWT[crypto]==2.15.0
 py-multihash==2.0.1
 base58==2.1.1
 SQLAlchemy==2.0.41
